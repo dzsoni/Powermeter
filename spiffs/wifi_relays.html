@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>ESP8266 & ESP32 Management Portal - Relays</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="Cache-Control" content="no-cache" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <link href="pure-all.min.css" rel="stylesheet" type="text/css" />
+</head>
+<script>
+  var logics = ["none",
+    "differential",
+    "thermostat",
+    "freeze"];
+  var tablenum = 0;
+  var sensornames;
+  function changeTempsel(tempselid, id) {
+    const tsel = document.getElementsByClassName(tempselid);
+    if (document.getElementById(id).value != "") {
+      for (const act of tsel) {
+        if (act.id == id) {
+          continue;
+        }
+        if (act.value == document.getElementById(id).value) {
+          act.options[0].selected = true;
+        }
+      }
+    }
+  }
+  function changeLogic(srsz, logic) {
+    let righttable = document.getElementById("righttable" + srsz);
+    if (righttable) {
+      righttable.parentNode.removeChild(righttable);
+    }
+    let newrighttable;
+    if (logic === "none") {
+      newrighttable = createNonLogicTable(srsz);
+    } else if (logic === "differential") {
+      newrighttable = createDifferentialLogicTable(srsz, "", "", "");
+    } else if (logic === "thermostat") {
+      newrighttable = createThermostatLogicTable(srsz, "", "", "");
+    } else if (logic === "freeze") {
+      newrighttable = createFreezeLogicTable(srsz, "", "", "");
+    }
+    let rh = document.getElementById("right_table_place" + srsz);
+    rh.appendChild(newrighttable);
+  }
+  function createLogicSelectRow(srsz, logic) {
+    let row1 = document.createElement("tr");
+    let data1 = document.createElement("td");
+    data1.setAttribute("style", "border:none");
+    let cont1 = document.createElement("div");
+    cont1.setAttribute("class", "contD");
+    let label1 = document.createElement("label");
+    label1.setAttribute("for", "g" + srsz);
+    label1.innerHTML = "Logic:";
+    let select1 = document.createElement("select");
+    select1.setAttribute("id", "g" + srsz);
+    select1.setAttribute("name", "g" + srsz);
+    select1.setAttribute("class", "logicselect");
+    select1.setAttribute("onchange", "changeLogic(" + srsz + ", this.value)");
+
+    for (let j = 0; j < logics.length; j++) {
+      let opt = document.createElement("option");
+      opt.setAttribute("value", logics[j]);
+      let v = document.createTextNode(logics[j]);
+      opt.appendChild(v);
+      select1.appendChild(opt);
+    }
+    for (let j = 0; j < select1.options.length; j++) {
+      if (select1.options[j].value === logic) {
+        select1.selectedIndex = j;
+        break;
+      }
+      else {
+        select1.selectedIndex = 0;
+      }
+    }
+    cont1.appendChild(label1);
+    cont1.appendChild(select1);
+    data1.appendChild(cont1);
+    row1.appendChild(data1);
+    return row1;
+  }
+  function createTempSelectOptions(selectobj, selectedsensor) {
+    let opt0 = document.createElement("option");
+    opt0.setAttribute("value", "");
+    let txt = document.createTextNode("--Choose a sensor--");
+    opt0.appendChild(txt);
+    selectobj.appendChild(opt0);
+
+    for (let j = 0; j < sensornames.length; j++) {
+      let opt = document.createElement("option");
+      opt.setAttribute("value", sensornames[j]);
+      let v = document.createTextNode(sensornames[j]);
+      opt.appendChild(v);
+      selectobj.appendChild(opt);
+    }
+    for (let j = 0; j < selectobj.options.length; j++) {
+      if (selectobj.options[j].value === selectedsensor) {
+        selectobj.selectedIndex = j;
+        break;
+      }
+      else {
+        selectobj.selectedIndex = 0;
+      }
+    }
+    return selectobj;
+  }
+  function createNonLogicTable(srsz) {
+    let righttable = document.createElement("table");
+    righttable.setAttribute("id", "righttable" + srsz);
+    righttable.setAttribute("name", "righttable" + srsz);
+    righttable.setAttribute("style", "border:none");
+    let row1 = createLogicSelectRow(srsz, "none");
+    righttable.appendChild(row1);
+    return righttable;
+  }
+  function createDifferentialLogicTable(srsz, diff_hightemp, diff_lowtemp, diff_deltatemp) {
+    let righttable = document.createElement("table");
+    righttable.setAttribute("id", "righttable" + srsz);
+    righttable.setAttribute("name", "righttable" + srsz);
+    righttable.setAttribute("style", "border:none");
+
+    let row1 = createLogicSelectRow(srsz, "differential");
+    righttable.appendChild(row1);
+
+    let row2 = document.createElement("tr");
+    let data2 = document.createElement("td");
+    data2.setAttribute("style", "border:none");
+    let cont2 = document.createElement("div");
+    cont2.setAttribute("class", "contD");
+    let label2 = document.createElement("label");
+    label2.setAttribute("for", "h" + srsz);
+    label2.innerHTML = "High temp sensor:";
+    cont2.appendChild(label2);
+    let select2 = document.createElement("select");
+    select2.setAttribute("id", "h" + srsz);
+    select2.setAttribute("name", "h" + srsz);
+    select2.setAttribute("class", "tempsel" + srsz);
+    select2.setAttribute("onchange", "changeTempsel('tempsel" + srsz + "', 'h" + srsz + "')");
+
+    select2 = createTempSelectOptions(select2, diff_hightemp);
+
+    cont2.appendChild(label2);
+    cont2.appendChild(select2);
+    data2.appendChild(cont2);
+    row2.appendChild(data2);
+    righttable.appendChild(row2);
+
+    let row3 = document.createElement("tr");
+    let data3 = document.createElement("td");
+    data3.setAttribute("style", "border:none");
+    let cont3 = document.createElement("div");
+    cont3.setAttribute("class", "contD");
+    let label3 = document.createElement("label");
+    label3.setAttribute("for", "l" + srsz);
+    label3.innerHTML = "Low temp sensor:";
+    cont3.appendChild(label3);
+    let select3 = document.createElement("select");
+    select3.setAttribute("id", "l" + srsz);
+    select3.setAttribute("name", "l" + srsz);
+    select3.setAttribute("class", "tempsel" + srsz);
+    select3.setAttribute("onchange", "changeTempsel('tempsel" + srsz + "', 'l" + srsz + "')");
+
+    select3 = createTempSelectOptions(select3, diff_lowtemp);
+
+    cont3.appendChild(select3);
+    data3.appendChild(cont3);
+    row3.appendChild(data3);
+    righttable.appendChild(row3);
+
+    let row4 = document.createElement("tr");
+    let data4 = document.createElement("td");
+    data4.setAttribute("style", "border:none");
+    let cont4 = document.createElement("div");
+    cont4.setAttribute("class", "contD");
+    let label4 = document.createElement("label");
+    label4.setAttribute("for", "d" + srsz);
+    label4.innerHTML = "Delta temp:";
+    cont4.appendChild(label4);
+    let input4 = document.createElement("input");
+    input4.setAttribute("type", "text");
+    input4.setAttribute("id", "d" + srsz);
+    input4.setAttribute("name", "d" + srsz);
+    input4.setAttribute("maxlength", "6");
+    input4.setAttribute("size", "6");
+    input4.setAttribute("value", diff_deltatemp);
+    input4.setAttribute("pattern", "[0-9]{0,3}(\\.[0-9]{1,2})?");
+    input4.setAttribute("oninput", "this.value = this.value.replace(/[^0-9.]/g, '')");
+
+
+    cont4.appendChild(label4);
+    cont4.appendChild(input4);
+    data4.appendChild(cont4);
+    row4.appendChild(data4);
+    righttable.appendChild(row4);
+    return righttable;
+  }
+  function createFreezeLogicTable(srsz, freez_sensor, freez_period, freeze_temp) {
+    let righttable = document.createElement("table");
+    righttable.setAttribute("id", "righttable" + srsz);
+    righttable.setAttribute("name", "righttable" + srsz);
+    righttable.setAttribute("style", "border:none");
+
+    let row1 = createLogicSelectRow(srsz, "freeze");
+    righttable.appendChild(row1);
+
+    let row2 = document.createElement("tr");
+    let data2 = document.createElement("td");
+    data2.setAttribute("style", "border:none");
+    let cont2 = document.createElement("div");
+    cont2.setAttribute("class", "contD");
+    let label2 = document.createElement("label");
+    label2.setAttribute("for", "f" + srsz);
+    label2.innerHTML = "Freeze sensor:";
+    cont2.appendChild(label2);
+
+    let select2 = document.createElement("select");
+    select2.setAttribute("id", "f" + srsz);
+    select2.setAttribute("name", "f" + srsz);
+    select2.setAttribute("class", "tempsel" + srsz);
+
+    select2 = createTempSelectOptions(select2, freez_sensor);
+
+    cont2.appendChild(label2);
+    cont2.appendChild(select2);
+    data2.appendChild(cont2);
+    row2.appendChild(data2);
+
+    righttable.appendChild(row2);
+
+    let row3 = document.createElement("tr");
+    let data3 = document.createElement("td");
+    data3.setAttribute("style", "border:none");
+    let cont3 = document.createElement("div");
+    cont3.setAttribute("class", "contD");
+    let label3 = document.createElement("label");
+    label3.setAttribute("for", "x" + srsz);
+    label3.innerHTML = "Period:";
+    let input3 = document.createElement("input");
+    input3.setAttribute("type", "text");
+    input3.setAttribute("id", "x" + srsz);
+    input3.setAttribute("name", "x" + srsz);
+    input3.setAttribute("maxlength", "4");
+    input3.setAttribute("size", "4");
+    input3.setAttribute("value", freez_period);
+    input3.setAttribute("pattern", "[0-9]{1,4}");
+    input3.setAttribute("oninput", "this.value = this.value.replace(/[^0-9]/g, '')");
+    cont3.appendChild(label3);
+    cont3.appendChild(input3);
+    data3.appendChild(cont3);
+    row3.appendChild(data3);
+    righttable.appendChild(row3);
+
+    let row4 = document.createElement("tr");
+    let data4 = document.createElement("td");
+    data4.setAttribute("style", "border:none");
+    let cont4 = document.createElement("div");
+    cont4.setAttribute("class", "contD");
+    let label4 = document.createElement("label");
+    label4.setAttribute("for", "r" + srsz);
+    label4.innerHTML = "Freeze temp:";
+    let input4 = document.createElement("input");
+    input4.setAttribute("type", "text");
+    input4.setAttribute("id", "r" + srsz);
+    input4.setAttribute("name", "r" + srsz);
+    input4.setAttribute("maxlength", "3");
+    input4.setAttribute("size", "3");
+    input4.setAttribute("value", freeze_temp);
+    input4.setAttribute("pattern", "-?[0-9]{1,2}");
+    input4.setAttribute("oninput", "this.value = this.value.replace(/[^0-9-]/g, '')");
+    cont4.appendChild(label4);
+    cont4.appendChild(input4);
+    data4.appendChild(cont4);
+    row4.appendChild(data4);
+    righttable.appendChild(row4);
+
+
+    return righttable;
+  }
+  function createThermostatLogicTable(srsz, thermo_tempsensor, thermo_temp, thermo_deltatemp) {
+    let righttable = document.createElement("table");
+    righttable.setAttribute("id", "righttable" + srsz);
+    righttable.setAttribute("name", "righttable" + srsz);
+    righttable.setAttribute("style", "border:none");
+    let row1 = createLogicSelectRow(srsz, "thermostat");
+    righttable.appendChild(row1);
+
+    let row2 = document.createElement("tr");
+    let data2 = document.createElement("td");
+    data2.setAttribute("style", "border:none");
+    let cont2 = document.createElement("div");
+    cont2.setAttribute("class", "contD");
+    let label2 = document.createElement("label");
+    label2.setAttribute("for", "t" + srsz);
+    label2.innerHTML = "Thermostat sensor:";
+    cont2.appendChild(label2);
+    let select2 = document.createElement("select");
+    select2.setAttribute("id", "t" + srsz);
+    select2.setAttribute("name", "t" + srsz);
+    select2.setAttribute("class", "tempsel" + srsz);
+    select2 = createTempSelectOptions(select2, thermo_tempsensor);
+
+    cont2.appendChild(select2);
+    data2.appendChild(cont2);
+    row2.appendChild(data2);
+    righttable.appendChild(row2);
+
+
+    let row3 = document.createElement("tr");
+    let data3 = document.createElement("td");
+    data3.setAttribute("style", "border:none");
+    let cont3 = document.createElement("div");
+    cont3.setAttribute("class", "contD");
+    let label3 = document.createElement("label");
+    label3.setAttribute("for", "z" + srsz);
+    label3.innerHTML = "Temperature:";
+    let input3 = document.createElement("input");
+    input3.setAttribute("type", "text");
+    input3.setAttribute("id", "z" + srsz);
+    input3.setAttribute("name", "z" + srsz);
+    input3.setAttribute("maxlength", "3");
+    input3.setAttribute("size", "3");
+    input3.setAttribute("value", thermo_temp);
+    input3.setAttribute("pattern", "[0-9]{1,3}");
+    input3.setAttribute("oninput", "this.value = this.value.replace(/[^0-9]/g, '')");
+
+    cont3.appendChild(label3);
+    cont3.appendChild(input3);
+    data3.appendChild(cont3);
+    row3.appendChild(data3);
+    righttable.appendChild(row3);
+
+    let row4 = document.createElement("tr");
+    let data4 = document.createElement("td");
+    data4.setAttribute("style", "border:none");
+    let cont4 = document.createElement("div");
+    cont4.setAttribute("class", "contD");
+    let label4 = document.createElement("label");
+    label4.setAttribute("for", "e" + srsz);
+    label4.innerHTML = "Delta temperature:";
+    let input4 = document.createElement("input");
+    input4.setAttribute("type", "text");
+    input4.setAttribute("id", "e" + srsz);
+    input4.setAttribute("name", "e" + srsz);
+    input4.setAttribute("maxlength", "3");
+    input4.setAttribute("size", "3");
+    input4.setAttribute("value", thermo_deltatemp);
+    input4.setAttribute("pattern", "[0-9]{0,2}(\\.[0-9]{1,2})?");
+    input4.setAttribute("oninput", "this.value = this.value.replace(/[^0-9.]/g, '')");
+
+    cont4.appendChild(label4);
+    cont4.appendChild(input4);
+    data4.appendChild(cont4);
+    row4.appendChild(data4);
+    righttable.appendChild(row4);
+
+    return righttable;
+
+  }
+  function createLeftTable(srsz, id, pin, initstate, onstate) {
+
+    let leftable = document.createElement("table");
+    leftable.setAttribute("id", "lefttable" + srsz);
+    leftable.setAttribute("name", "lefttable" + srsz);
+    leftable.setAttribute("style", "border:none");
+
+    let row1 = document.createElement("tr");
+
+    let data1 = document.createElement("td");
+    data1.setAttribute("style", "border:none");
+
+    let cont1 = document.createElement("div");
+    cont1.setAttribute("class", "contD");
+
+    let label1 = document.createElement("label");
+    label1.setAttribute("for", "i" + srsz);
+    label1.innerHTML = "ID:";
+    cont1.appendChild(label1);
+
+    let input1 = document.createElement("input");
+    input1.setAttribute("type", "text");
+    input1.setAttribute("id", "i" + srsz);
+    input1.setAttribute("name", "i" + srsz);
+    input1.setAttribute("maxlength", "16");
+    input1.setAttribute("size", "16");
+    input1.setAttribute("value", id);
+    input1.setAttribute("pattern", "[a-zA-Z0-9_]{1,16}");
+    input1.setAttribute("oninput", "this.value = this.value.replace(/[^a-zA-Z0-9_]/g, '')");
+    cont1.appendChild(input1);
+    data1.appendChild(cont1);
+    row1.appendChild(data1);
+    leftable.appendChild(row1);
+
+    let row2 = document.createElement("tr");
+    let data2 = document.createElement("td");
+    data2.setAttribute("style", "border:none");
+    let cont2 = document.createElement("div");
+    cont2.setAttribute("class", "contD");
+
+    let label2 = document.createElement("label");
+    label2.setAttribute("for", "p" + srsz);
+    label2.innerHTML = "Pin:";
+    cont2.appendChild(label2);
+    let input2 = document.createElement("input");
+    input2.setAttribute("type", "text");
+    input2.setAttribute("id", "p" + srsz);
+    input2.setAttribute("name", "p" + srsz);
+    input2.setAttribute("maxlength", "2");
+    input2.setAttribute("size", "2");
+    input2.setAttribute("value", pin);
+    input2.setAttribute("pattern", "[0-9]{1,2}");
+    input2.setAttribute("oninput", "this.value = this.value.replace(/[^0-9]/g, '')");
+    cont2.appendChild(input2);
+    data2.appendChild(cont2);
+    row2.appendChild(data2);
+    leftable.appendChild(row2);
+
+    let row3 = document.createElement("tr");
+    let data3 = document.createElement("td");
+    data3.setAttribute("style", "border:none");
+    let cont3 = document.createElement("div");
+    cont3.setAttribute("class", "contD");
+
+    let label3 = document.createElement("label");
+    label3.setAttribute("for", "n" + srsz);
+    label3.innerHTML = "Initstate:";
+    cont3.appendChild(label3);
+    let input3 = document.createElement("input");
+    input3.setAttribute("type", "text");
+    input3.setAttribute("id", "n" + srsz);
+    input3.setAttribute("name", "n" + srsz);
+    input3.setAttribute("maxlength", "1");
+    input3.setAttribute("size", "1");
+    input3.setAttribute("value", initstate);
+    input3.setAttribute("pattern", "[01]");
+    input3.setAttribute("oninput", "this.value = this.value.replace(/[^01]/g, '')");
+    cont3.appendChild(input3);
+    data3.appendChild(cont3);
+    row3.appendChild(data3);
+    leftable.appendChild(row3);
+
+    let row4 = document.createElement("tr");
+    let data4 = document.createElement("td");
+    data4.setAttribute("style", "border:none");
+    let cont4 = document.createElement("div");
+    cont4.setAttribute("class", "contD");
+    let label4 = document.createElement("label");
+    label4.setAttribute("for", "o" + srsz);
+    label4.innerHTML = "Onstate:";
+    cont4.appendChild(label4);
+    let input4 = document.createElement("input");
+    input4.setAttribute("type", "text");
+    input4.setAttribute("id", "o" + srsz);
+    input4.setAttribute("name", "o" + srsz);
+    input4.setAttribute("maxlength", "1");
+    input4.setAttribute("size", "1");
+    input4.setAttribute("value", onstate);
+    input4.setAttribute("pattern", "[01]");
+    input4.setAttribute("oninput", "this.value = this.value.replace(/[^01]/g, '')");
+    cont4.appendChild(input4);
+    data4.appendChild(cont4);
+    row4.appendChild(data4);
+    leftable.appendChild(row4);
+    return leftable;
+  }
+  function createPlaceHolderTable(srsz) {
+    let table = document.createElement("table");
+    table.setAttribute("id", "tableholder" + srsz);
+    table.setAttribute("name", "tableholder" + srsz);
+    let row = document.createElement("tr");
+
+    let header1 = document.createElement("th");
+    header1.setAttribute("id", "left_table_place" + srsz);
+    header1.setAttribute("name", "left_table_place" + srsz);
+
+    let header2 = document.createElement("th");
+    header2.setAttribute("id", "right_table_place" + srsz);
+    header2.setAttribute("name", "right_table_place" + srsz);
+
+    let header3 = document.createElement("th");
+    //header3.setAttribute("rowspan", "8");
+    let del = document.createElement("div");
+    del.setAttribute("id", "d" + srsz);
+    del.setAttribute("class", "delete");
+    del.setAttribute("onclick", "clickDelete('tableholder" + srsz + "')");
+    let x = document.createTextNode("X");
+    del.appendChild(x);
+    header3.appendChild(del);
+    
+
+    row.appendChild(header1);
+    row.appendChild(header2);
+    row.appendChild(header3);
+    table.appendChild(row);
+    return table;
+  }
+  function createTables() {
+    let xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function () {
+      if (this.readyState == 4 && this.status == 200) {
+        let obj = JSON.parse(this.responseText);
+
+        let keys = Object.keys(obj);
+        let values = Object.values(obj);
+        var arr = [];
+
+        for (let i = 0; i < keys.length; i++) {
+          if (keys[i].indexOf(":id") > 0) { arr.push({ id: values[i] }); }
+          else if (keys[i].indexOf(":pin") > 0) { arr[arr.length - 1].pin = values[i]; }
+          else if (keys[i].indexOf(":initstate") > 0) { arr[arr.length - 1].initstate = values[i]; }
+          else if (keys[i].indexOf(":onstate") > 0) { arr[arr.length - 1].onstate = values[i]; }
+        }
+        let xhttp2 = new XMLHttpRequest();
+        xhttp2.onreadystatechange = function () {
+          if (this.readyState == 4 && this.status == 200) {
+            let obj = JSON.parse(this.responseText);
+            sensornames = Object.values(obj);
+            let xhttp3 = new XMLHttpRequest();
+            xhttp3.onreadystatechange = function () {
+              if (this.readyState == 4 && this.status == 200) {
+                let obj3 = JSON.parse(this.responseText);
+                let keys3 = Object.keys(obj3);
+                let values3 = Object.values(obj3);
+                for (let j = 0; j < arr.length; j++) {
+                  for (let i = 0; i < keys3.length; i++) {
+                    if (keys3[i].indexOf(j+":logic") == 0) { arr[j].logic = values3[i]; arr[j].logicobj = {}; }
+                    else if (keys3[i].indexOf(j+":diff_hightemp") == 0) { arr[j].logicobj.diff_hightemp = values3[i]; }
+                    else if (keys3[i].indexOf(j+":diff_lowtemp") == 0) { arr[j].logicobj.diff_lowtemp = values3[i]; }
+                    else if (keys3[i].indexOf(j+":diff_deltatemp") == 0) { arr[j].logicobj.diff_deltatemp = values3[i]; }
+                    else if (keys3[i].indexOf(j+":thermo_tempsensor") == 0) { arr[j].logicobj.thermo_tempsensor = values3[i]; }
+                    else if (keys3[i].indexOf(j+":thermo_temp") == 0) { arr[j].logicobj.thermo_temp = values3[i]; }
+                    else if (keys3[i].indexOf(j+":thermo_deltatemp") == 0) { arr[j].logicobj.thermo_deltatemp = values3[i]; }
+                    else if (keys3[i].indexOf(j+":freez_sensor") == 0) { arr[j].logicobj.freez_sensor = values3[i]; }
+                    else if (keys3[i].indexOf(j+":freez_period") == 0) { arr[j].logicobj.freez_period = values3[i]; }
+                    else if (keys3[i].indexOf(j+":freez_temp") == 0) { arr[j].logicobj.freez_temp = values3[i]; }
+                  }
+                }
+                
+                console.log(arr.length);
+                for (let i = 0; i < arr.length; i++) {
+
+                  let leftTable = createLeftTable(i, arr[i].id, arr[i].pin, arr[i].initstate, arr[i].onstate);
+                  var rightTable;
+
+                  if(arr[i].hasOwnProperty("logic") === false) {
+                    arr[i].logic = "none";
+                  }
+                  if (arr[i].logic === "none" || arr[i].logic === "" || arr[i].hasOwnProperty("logic") === false) {
+                    rightTable = createNonLogicTable(i);
+                    
+                  } else if (arr[i].logic === "differential") {
+                    rightTable = createDifferentialLogicTable(i,
+                      arr[i].logicobj.diff_hightemp,
+                      arr[i].logicobj.diff_lowtemp,
+                      arr[i].logicobj.diff_deltatemp);
+                  } else if (arr[i].logic === "thermostat") {
+                    rightTable = createThermostatLogicTable(i,
+                      arr[i].logicobj.thermo_tempsensor,
+                      arr[i].logicobj.thermo_temp,
+                      arr[i].logicobj.thermo_deltatemp);
+                  } else if (arr[i].logic === "freeze") {
+                    rightTable = createFreezeLogicTable(i,
+                      arr[i].logicobj.freez_sensor,
+                      arr[i].logicobj.freez_period,
+                      arr[i].logicobj.freez_temp);
+                  }
+                  else {
+                    rightTable = createNonLogicTable(i);
+                  };
+                  
+                  let tableholder = createPlaceHolderTable(i);
+                  let field = document.getElementById("tablefield");
+                  field.appendChild(tableholder);
+                  let lh = document.getElementById("left_table_place" + i);
+                  let rh = document.getElementById("right_table_place" + i);
+
+                  lh.appendChild(leftTable);
+                  rh.appendChild(rightTable);
+                }
+              }
+            };
+            xhttp3.open("GET", "relaylogic.json", true);
+            xhttp3.send();
+          }
+        };
+        xhttp2.open("GET", "sensnames.json", true);
+        xhttp2.send();
+      }
+    };
+    xhttp.open("GET", "relay.json", true);
+    xhttp.send();
+  }
+
+  function addbtnclick() {
+    tablenum++;
+    let leftTable = createLeftTable(tablenum, "", "", "0", "1");
+    let rightTable = createNonLogicTable(tablenum);
+    let tableholder = createPlaceHolderTable(tablenum);
+    let field = document.getElementById("tablefield");
+    field.appendChild(tableholder);
+    let lh = document.getElementById("left_table_place" + tablenum);
+    let rh = document.getElementById("right_table_place" + tablenum);
+    lh.appendChild(leftTable);
+    rh.appendChild(rightTable);
+  }
+  function clickDelete(id) {
+    let child = document.getElementById(id);
+    child.parentNode.removeChild(child);
+    //if (document.getElementById("table").children.length == 1) {
+    //  document.getElementById("btnadd").focus();
+    //}
+  }
+  window.addEventListener('DOMContentLoaded', function () {
+    createTables();
+  })
+</script>
+
+<body>
+  <div class="header">
+    <div class="home"><img alt="Home" src="home.svg" onClick="location.href='wifi_index.html'" /></div>
+    <h1>ESP8266 & ESP32 Management Portal - Relays</h1>
+  </div>
+  <form action="/saverelays/" method="POST">
+    <div id="tablefield">
+    </div>
+    <br />
+    <input type="button" value="Add" id="btnadd" onclick="addbtnclick()" />
+    <input type="submit" value="Save & Init" />
+  </form>
+</body>
+
+</html>

@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Command</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta http-equiv="Cache-Control" content="no-cache"/>
+<meta http-equiv="Pragma" content="no-cache" />
+<link href="pure-all.min.css" rel="stylesheet" type="text/css" />
+<script>
+var selectedDevice;
+
+function makecommandtable(devname,devcomms,values){
+    let table = document.createElement("table");
+    table.setAttribute("id","commandtable");
+
+    let tr = document.createElement("tr");
+    let th = document.createElement("th");
+    let txt = document.createTextNode("Command");
+    let div = document.createElement("div");
+    div.setAttribute("class", "contC");
+    div.appendChild(txt);
+    th.appendChild(div);
+    tr.appendChild(th);
+    
+    let th2 = document.createElement("th");
+    let txt2 = document.createTextNode("Enabled");
+    let div2 = document.createElement("div");
+    div2.setAttribute("class", "contC");
+    div2.appendChild(txt2);
+    th2.appendChild(div2);
+    tr.appendChild(th2);
+    table.appendChild(tr);
+
+    for(let i = 0; i < devcomms.length; i++){
+      let tr = document.createElement("tr");
+      let td = document.createElement("td");
+      let inp = document.createElement("input");
+      inp.setAttribute("type","hidden");
+      inp.setAttribute("value",devcomms[i]);
+      inp.setAttribute("id","n"+i);
+      inp.setAttribute("name","n"+i);
+      let txt = document.createTextNode(devcomms[i]);
+      td.appendChild(inp);
+      td.appendChild(txt);
+
+      let td2 = document.createElement("td");
+      let inp1 = document.createElement("input");
+      inp1.setAttribute("type","hidden");
+      if(values[i] == "true"){
+        inp1.setAttribute("value","true");
+      }
+      else{
+        inp1.setAttribute("value","false");
+      }
+      inp1.setAttribute("id","v"+i);
+      inp1.setAttribute("name","v"+i);
+
+      let inp2 = document.createElement("input");
+      inp2.setAttribute("type","checkbox");
+      inp2.setAttribute("id","c"+i);
+      if(values[i] == "true"){
+        inp2.setAttribute("checked", "checked");
+      }
+      
+	    
+      inp2.setAttribute("onchange","this.previousElementSibling.value=this.checked");
+      
+      td2.appendChild(inp1);
+      td2.appendChild(inp2);
+      
+      tr.appendChild(td);
+      tr.appendChild(td2);
+      table.appendChild(tr);
+    }
+    document.getElementById("tablefield").appendChild(table);
+}
+	
+function filldevices() {
+  var xhttp1 = new XMLHttpRequest();
+  xhttp1.onreadystatechange = function() {
+    if (this.readyState == 4 && this.status == 200) {
+      let devicenames = JSON.parse(this.responseText);
+	for (let i = 0; i < devicenames.length; i++) {
+        let opt = document.createElement("option");
+        opt.setAttribute("value", devicenames[i]);
+        let v = document.createTextNode(devicenames[i]);
+        opt.appendChild(v);
+        document.getElementById("DEVICELIST").appendChild(opt);
+	}
+	}
+  };
+  xhttp1.open("GET", "getdevicenames.json", true);
+  xhttp1.send();
+}
+  function addeventlisener() {
+    const tsel = document.getElementById('DEVICELIST');
+    tsel.addEventListener('change', function () {
+      let selectedOption = this[this.selectedIndex];
+      selectedDevice = selectedOption.text;
+      var xhr = new XMLHttpRequest();
+      xhr.onreadystatechange = function () {
+        if (this.readyState == 4 && this.status == 200) {
+          let json = JSON.parse(this.responseText);
+          let devcoms = Object.keys(json);
+          let values = Object.values(json);
+
+          const parent = document.getElementById("tablefield");
+          while (parent.firstChild) {
+            parent.firstChild.remove()
+          }
+          const parent2 = document.getElementById("value-field");
+          while (parent2.firstChild) {
+            parent2.firstChild.remove()
+          }
+          makecommandtable(selectedDevice, devcoms, values);
+          var xhr2 = new XMLHttpRequest();
+          xhr2.onreadystatechange = function () {
+            if (this.readyState == 4 && this.status == 200) {
+              let json = JSON.parse(this.responseText);
+              let devtypes = Object.keys(json);
+              let names = Object.values(json);
+              let n=0;
+              for (let i = 0; i < devtypes.length; i++) {
+                if (devtypes[i] == selectedDevice) {
+                  
+                  let div = document.createElement("div");
+                  div.setAttribute("class", "item");
+                  div.setAttribute("id", "ic" + n);
+
+                  let roit = document.createElement("div");
+                  roit.setAttribute("class", "rowitem");
+                  let lab = document.createElement("label");
+                  lab.setAttribute("for", "io" + n);
+                  let serial = document.createTextNode("Old name: ");
+                  lab.appendChild(serial);
+                  roit.appendChild(lab);
+                  div.appendChild(roit);
+
+                  let roit2 = document.createElement("div");
+                  roit2.setAttribute("class", "rowitem");
+                  let inp2 = document.createElement("input");
+                  inp2.setAttribute("class", "rowitem");
+                  inp2.setAttribute("maxlength", "32");
+                  inp2.setAttribute("size", "10");
+                  inp2.setAttribute("type", "text");
+                  inp2.setAttribute("id", "io" + n);  
+                  inp2.setAttribute("name", "io" + n);
+                  inp2.setAttribute("value", names[i]);
+                  inp2.setAttribute("readonly", "readonly");
+                  roit2.appendChild(inp2);
+                  div.appendChild(roit2);
+                  
+                  let roit3 = document.createElement("div");
+                  roit3.setAttribute("class", "rowitem");
+                  let lab3 = document.createElement("label");
+                  lab3.setAttribute("for", "in" + n);
+                  let serial2 = document.createTextNode("New name: ");
+                  lab3.appendChild(serial2);
+                  roit3.appendChild(lab3);
+                  div.appendChild(roit3);
+
+                  let roit1 = document.createElement("div");
+                  roit1.setAttribute("class", "rowitem");
+                  let inp1 = document.createElement("input");
+                  inp1.setAttribute("class", "rowitem");
+                  inp1.setAttribute("maxlength", "32");
+                  inp1.setAttribute("size", "10");
+                  inp1.setAttribute("type", "text");
+                  inp1.setAttribute("id", "in" + n);
+                  inp1.setAttribute("name", "in" + n);
+                  inp1.setAttribute("value", names[i]);
+                  roit1.appendChild(inp1);
+                  div.appendChild(roit1);
+                  document.getElementById("value-field").appendChild(div);
+                  n++;
+                }
+              }
+            }
+          }
+          xhr2.open("POST", "/getdeviceusernames", true);
+          xhr2.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+          xhr2.responseType = "";
+          xhr2.send("devicetype=" + selectedDevice);
+        }
+      };
+      xhr.open("POST", "/getfilteredcommands", true);
+      xhr.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+      xhr.responseType = "";
+      xhr.send("devicename=" + selectedDevice);
+    });
+  }
+
+ document.addEventListener("DOMContentLoaded", function () {
+ filldevices();
+ addeventlisener();
+  });
+</script>
+</head>
+<body>
+  <div class="header">
+    <div class="home"><img alt = "Home" src = "home.svg"  onClick="location.href='wifi_index.html'"/></div>
+<h1>ESP8266 &amp; ESP32 Management Portal - Control Commands</h1>
+  </div>
+<form action="/savecommfilter/" method="POST">
+  <div class="contA">
+  <div class="contB">
+    <label for="DEVICELIST">Device:</label>
+    <select id="DEVICELIST" name="DEVICELIST" class="deviceoption">
+      <option value="" style="display: none">--Choose a device--</option>
+    </select>
+  </div>
+</div>
+<div class="contA">
+<div id="tablefield"></div>
+</div>
+<div class="contA">
+  <div id="containervf">
+    <div id="value-field" class="value-field"></div>
+  </div>
+</div>
+<input type="submit" value="Save" id="btnsave" />
+</form>
+</body>
+</html>

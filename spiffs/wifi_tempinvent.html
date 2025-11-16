@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <title>Temperature Sensor Inventory</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta http-equiv="Cache-Control" content="no-cache"/>
+    <meta http-equiv="Pragma" content="no-cache" />
+    <link href="pure-all.min.css" rel="stylesheet" type="text/css" />
+    <script>
+      var known;
+      var unknown;
+      function fillUnknownSensors() {
+        var xhttp1 = new XMLHttpRequest();
+        xhttp1.onreadystatechange = function () {
+          if (this.readyState == 4 && this.status == 200) {
+            unknown = JSON.parse(this.responseText);
+            for (let i = 0; i < unknown.length; i++) {
+                appenditemtovf(unknown[i],"");
+            }
+          }
+        };
+
+        xhttp1.open("GET", "getunknownsenses.json", true);
+        xhttp1.send();
+      }
+
+      function fillKnownSensors() {
+        var xhttp = new XMLHttpRequest();
+        xhttp.onreadystatechange = function () {
+          if (this.readyState == 4 && this.status == 200) {
+            known = JSON.parse(this.responseText);
+
+            var c = Object.keys(known).length;
+            var keys = Object.keys(known);
+            var values = Object.values(known);
+
+            for (let i = 0; i < c; i++) {
+              appenditemtovf(keys[i], values[i]);
+            }
+          }
+        };
+        xhttp.open("GET", "sensnames.json", true);
+        xhttp.send();
+      }
+      
+      function fillLiveSensors() {
+          var xhttp2 = new XMLHttpRequest();
+          xhttp2.onreadystatechange = function () {
+            if (this.readyState == 4 && this.status == 200) {
+              livesens = JSON.parse(this.responseText);
+              let r = document.getElementById("value-field").children.length;
+              for (rows = 0; rows < r; rows++) {
+                for (let i = 0; i < livesens.length; i++) {
+                  if (document.getElementById("h" + rows).value == livesens[i])
+                  {
+                    document.getElementById("live" + rows).innerHTML = '&#x1F7E2';
+                    break;
+                  }
+                  else
+                  {
+                    document.getElementById("live" + rows).innerHTML = '&#x25ef';
+                  }
+                }
+             }
+           }};
+          xhttp2.open("GET", "/getlivesensors", true);
+          xhttp2.send();
+        }
+
+      function clickDelete(id) {
+        let child = document.getElementById(id);
+        child.parentNode.removeChild(child);
+        if(document.getElementById("value-field").children.length==0)
+        {
+         document.getElementById("btnrescan").focus();
+        }
+      }
+
+      function fillValueField() {
+        fillKnownSensors();
+        fillUnknownSensors();
+        fillLiveSensors()
+      }
+      
+
+      function rescanhWireButtonClick() {
+        var xhttp2 = new XMLHttpRequest();
+        xhttp2.onreadystatechange = function () {
+          if (this.readyState == 4 && this.status == 200) {
+            location.reload();
+          }
+        }
+        xhttp2.open("GET", "/rescanwires/", true);
+        xhttp2.send();
+      }
+
+      function appenditemtovf(ser, name) {
+        let i = document.getElementById("value-field").children.length;
+        let div = document.createElement("div");
+        div.setAttribute("class", "item");
+        div.setAttribute("id", "i" + i);
+
+        let inp1 = document.createElement("input");
+        inp1.setAttribute("type", "hidden");
+        inp1.setAttribute("id", "h" + i);
+        inp1.setAttribute("name", "h" + i);
+        inp1.setAttribute("value", ser);
+        div.appendChild(inp1);
+
+        let roit1a = document.createElement("div");
+        roit1a.setAttribute("class", "rowitem");
+        let live = document.createElement("div");
+        live.setAttribute("id", "live" + i);
+        roit1a.appendChild(live);
+        div.appendChild(roit1a);
+
+        let roit = document.createElement("div");
+        roit.setAttribute("class","rowitem");
+        let lab = document.createElement("label");
+        lab.setAttribute("for", "n" + i);
+        let serial = document.createTextNode(ser);
+        lab.appendChild(serial);
+        roit.appendChild(lab);
+        div.appendChild(roit);
+
+        let roit2 = document.createElement("div");
+        roit2.setAttribute("class","rowitem")
+        let inp2 = document.createElement("input");
+        inp2.setAttribute("type", "text");
+        inp2.setAttribute("id", "n" + i);
+        inp2.setAttribute("name", "n" + i);
+        inp2.setAttribute("maxlength", "32");
+        inp2.setAttribute("size", "10");
+        inp2.setAttribute("value", name);
+        roit2.appendChild(inp2);
+        div.appendChild(roit2);
+
+        let roit3 = document.createElement("div");
+        roit3.setAttribute("class","rowitem")
+        let del = document.createElement("div");
+        del.setAttribute("class", "delete");
+        del.setAttribute("id", "d" + i);
+        del.setAttribute("onclick", "clickDelete('i" + i + "')");
+
+        let x = document.createTextNode("x");
+        del.appendChild(x);
+        roit3.appendChild(del);
+        div.appendChild(roit3);
+        document.getElementById("value-field").appendChild(div);
+      }
+    </script>
+  </head>
+
+  <body>
+    <div class="header">
+      <div class="home"><img  alt = "Home"  src = "home.svg"  onClick="location.href='wifi_index.html'"/></div>
+    <h1>
+      ESP8266 &amp; ESP32 Management Portal - Temperature Sensor Inventory
+    </h1>
+    </div>
+    <form action="/saveTempsens/" method="POST">
+
+       <div id="containervf">
+         <div id="value-field" class="value-field"></div>
+       </div>
+      <input type="button" id="btnrescan" value="Rescan" onclick="rescanhWireButtonClick()"/>
+      <input type="submit" value="Save & Rescan" />
+    </form>
+    <script>
+      fillValueField();
+    </script>
+  </body>
+</html>

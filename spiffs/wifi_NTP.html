@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <title>NTP time</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta http-equiv="Cache-Control" content="no-cache"/>
+    <meta http-equiv="Pragma" content="no-cache" />
+    <link href="pure-all.min.css" rel="stylesheet" type="text/css" />
+    <script>
+      function getNTPJson() {
+        var xhttp = new XMLHttpRequest();
+        xhttp.onreadystatechange = function () {
+          if (this.readyState == 4 && this.status == 200) {
+            var obj = JSON.parse(this.responseText);
+            document.getElementById("NTPserver").value = obj["NTPserver"];
+            document.getElementById("UTCh").value = obj["UTCh"];
+            document.getElementById("UTCm").value = obj["UTCm"];
+            document.getElementById("extratsh").value = obj["extratsh"];
+          }
+        };
+        xhttp.open("GET", "ntp.json", true);
+        xhttp.send();
+      }
+      function sendTime() {
+        var xhttp = new XMLHttpRequest();
+        var data = new FormData();
+        var t = Date.now();
+        data.append("time", t);
+        xhttp.open("POST", "/sendTime/", true);
+        xhttp.send(data);
+      }
+      function setInputFilter(textbox, inputFilter) {
+        [
+          "input",
+          "keydown",
+          "keyup",
+          "mousedown",
+          "mouseup",
+          "select",
+          "contextmenu",
+          "drop",
+        ].forEach(function (event) {
+          textbox.addEventListener(event, function () {
+            if (inputFilter(this.value)) {
+              this.oldValue = this.value;
+              this.oldSelectionStart = this.selectionStart;
+              this.oldSelectionEnd = this.selectionEnd;
+            } else if (this.hasOwnProperty("oldValue")) {
+              this.value = this.oldValue;
+              this.setSelectionRange(
+                this.oldSelectionStart,
+                this.oldSelectionEnd
+              );
+            } else {
+              this.value = "";
+            }
+          });
+        });
+      }
+      window.onload = function () {
+        setInputFilter(document.getElementById("UTCh"), function (value) {
+          return /^-?\d*$/.test(value);
+        });
+        setInputFilter(document.getElementById("UTCm"), function (value) {
+          return /^\d*$/.test(value) && (value === "" || parseInt(value) <= 59);
+        });
+      };
+ document.addEventListener("DOMContentLoaded", function () {
+  getNTPJson();
+  });
+    </script>
+  </head>
+
+  <body>
+    <div class="header">
+      <div class="home"><img alt = "Home" src = "home.svg"  onClick="location.href='wifi_index.html'"/></div>
+    <h1>ESP8266 & ESP32 Management Portal - NTP Setup</h1>
+    </div>
+    <form action="/saveNTP/" method="POST">
+      <div class="contA">
+        <div class="contB">
+          <label for="NTPserver">NTP server:</label>
+          <input
+            type="text"
+            id="NTPserver"
+            name="NTPserver"
+            maxlength="80"
+            size="32"
+          />
+        </div>
+        <div class="contB">
+          <label for="UTCh">UTC zone:</label>
+          <input
+            type="text"
+            id="UTCh"
+            name="UTCh"
+            maxlength="3"
+            size="3"
+          /><label>:</label>
+          <input
+            type="text"
+            id="UTCm"
+            name="UTCm"
+            maxlength="2"
+            size="2"
+          /><label>(hour:min)</label>
+        </div>
+
+        <div class="contB">
+          <label for="extratsh">Choose an option:</label>
+          <select name="extratsh" id="extratsh">
+            <option value="None">Neither</option>
+            <option value="ST">Summer Time (Europe)</option>
+            <option value="DST">Daylight Saving Time (US)</option>
+          </select>
+        </div>
+      </div>
+      <input type="reset" value="Clear" />
+      <input type="submit" value="Save" />
+    </form>
+
+    <input
+      type="button"
+      onclick="sendTime()"
+      value="Sync with browser's time."
+    />
+  </body>
+</html>

@@ -1,0 +1,1 @@
+{"getCounterValue":"true","setCounterValue":"true","setPin":"true","getPin":"true","setStableTime":"true","getStableTime":"true","enableCounter":"true","disableCounter":"true","isCounterEnabled":"true","setMqttPublishPeriod":"true","getMqttPublishPeriod":"true","setCounterTopic":"true","getCounterTopic":"true","saveMqttsettings":"true","loadMqttsettings":"true"}

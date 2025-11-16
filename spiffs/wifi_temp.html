@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Temperature</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link href="pure-all.min.css" rel="stylesheet" type="text/css" />
+    <script>
+        function getTempJson() {
+            var xhttp = new XMLHttpRequest();
+            xhttp.onreadystatechange = function () {
+                if (this.readyState == 4 && this.status == 200) {
+                    var obj = JSON.parse(this.responseText);
+
+                    var c = Object.keys(obj).length;
+                    var keys = Object.keys(obj);
+                    var values = Object.values(obj);
+
+                    for (let i = 0; i < c; i++) {
+                        if (document.getElementById("i" + i) == null) {
+                            createDivs(i);
+                        }
+                        document.getElementById("n" + i).innerHTML = values[i][0];
+                        document.getElementById("a" + i).innerHTML = values[i][1];
+                        document.getElementById("g" + i).innerHTML = values[i][2];
+                        document.getElementById("t" + i).innerHTML = values[i][3] + values[i][4];
+                        
+                        document.getElementById("t" + i).classList.remove("redflash");
+                        requestAnimationFrame((time) => {
+                        requestAnimationFrame((time) => {
+                            document.getElementById("t" + i).classList.add("redflash");
+                            });
+                        });
+                    }
+
+                    starttimer();
+                }
+            };
+            xhttp.open("GET", "temp.json", true);
+            xhttp.send();
+        }
+        function createDivs(id) {
+            let div = document.createElement("div");
+            div.setAttribute("class", "contB");
+            div.setAttribute("id", "i" + id);
+
+            let p = document.createElement("p");
+
+            let span_name = document.createElement("span");
+            span_name.setAttribute("id", "n" + id);
+
+            let span_addr = document.createElement("span");
+            span_addr.setAttribute("id", "a" + id);
+
+            let span_gpio = document.createElement("span");
+            span_gpio.setAttribute("id", "g" + id);
+
+            let span_temp = document.createElement("span");
+            span_temp.setAttribute("id", "t" + id);
+            span_temp.setAttribute("class", "rednoflash");
+
+            let txt_name = document.createTextNode("Name:");
+            let txt_br = document.createElement("br");
+            let txt_addr = document.createTextNode("Address:");
+            let txt_gpio = document.createTextNode("GPIO");
+            let txt_temp = document.createTextNode("Temp:");
+
+            p.appendChild(txt_name);
+            p.appendChild(span_name);
+            p.appendChild(txt_br.cloneNode());
+
+
+            p.appendChild(txt_addr);
+            p.appendChild(span_addr);
+            p.appendChild(txt_br.cloneNode());
+
+
+            p.appendChild(txt_gpio);
+            p.appendChild(span_gpio);
+            p.appendChild(txt_br.cloneNode());
+
+            p.appendChild(txt_temp);
+            p.appendChild(span_temp);
+
+            div.appendChild(p);
+            document.getElementById("mc").appendChild(div);
+        }
+        function starttimer() {
+            setTimeout(getTempJson, 10000);
+        }
+    </script>
+</head>
+
+<body>
+    <div class="header">
+        <div class="home"><img alt = "Home" src = "home.svg"  onClick="location.href='wifi_index.html'"/></div>
+    <h1>ESP8266 & ESP32 Management Portal - Temperature</h1>
+    </div>
+    <div class="main_container" id="mc"></div>
+    <script>
+        getTempJson();
+    </script>
+</body>
+
+</html>

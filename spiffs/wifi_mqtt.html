@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>MQTT</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta http-equiv="Cache-Control" content="no-cache"/>
+<meta http-equiv="Pragma" content="no-cache" />
+<link href="pure-all.min.css" rel="stylesheet" type="text/css" />
+<script>
+var sensornames;
+
+function setInputFilter(textbox, inputFilter) {
+    ["input", "keydown", "keyup", "mousedown", "mouseup", "select", "contextmenu", "drop"].forEach(function(event) {
+        textbox.addEventListener(event, function() {
+            if (inputFilter(this.value)) {
+                this.oldValue = this.value;
+                this.oldSelectionStart = this.selectionStart;
+                this.oldSelectionEnd = this.selectionEnd;
+            } else if (this.hasOwnProperty("oldValue")) {
+                this.value = this.oldValue;
+                this.setSelectionRange(this.oldSelectionStart, this.oldSelectionEnd);
+            } else {
+                this.value = "";
+            }
+        });
+    });
+}
+
+  function fillmqttvalues() {
+    let xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function () {
+      if (this.readyState == 4 && this.status == 200) {
+
+        let obj = JSON.parse(this.responseText);
+        sensornames = Object.values(obj);
+
+        let xhttp2 = new XMLHttpRequest();
+        xhttp2.onreadystatechange = function () {
+          if (this.readyState == 4 && this.status == 200) {
+            let obj2 = JSON.parse(this.responseText);
+            let keys = Object.keys(obj2);
+            let values = Object.values(obj2);
+
+            for (let i = 0; i < values.length; i++) {
+              if (keys[i] == "SERVERADDRESS") {
+                document.getElementById('SERVERADDRESS').value = values[i];
+                continue;
+              }
+              if (keys[i] == "SERVERPORT") {
+                document.getElementById('SERVERPORT').value = values[i];
+                continue;
+              }
+              if (keys[i] == "USERNAME") {
+                document.getElementById('USERNAME').value = values[i];
+                continue;
+              }
+              if (keys[i] == "PASSWORD") {
+                document.getElementById('PASSWORD').value = values[i];
+                continue;
+              }
+              if (keys[i] == "CLIENTID") {
+                document.getElementById('CLIENTID').value = values[i];
+                continue;
+              }
+              if (keys[i] == "CLEANSESSION") {
+                document.getElementById('CLEANSESSION').value = (values[i] === "true");
+                document.getElementById('cleansessionchk').checked = (values[i] === "true");
+                continue;
+              }
+              if (keys[i] == "KEEPALIVE") {
+                document.getElementById('KEEPALIVE').value = values[i];
+                continue;
+              }
+              if (keys[i] == "WILLTOPIC") {
+                document.getElementById('WILLTOPIC').value = values[i];
+                continue;
+              }
+              if (keys[i] == "WILLQOS") {
+                document.getElementById('WILLQOS').value = values[i];
+                continue;
+              }
+              if (keys[i] == "WILLRETAIN") {
+                document.getElementById('WILLRETAIN').value = (values[i] === "true");
+                document.getElementById('willretainchk').checked = (values[i] === "true");
+                continue;
+              }
+              if (keys[i] == "WILLTEXT") {
+                document.getElementById('WILLTEXT').value = values[i];
+                continue;
+              }
+              if (keys[i].indexOf(":topic") > 0) {
+                let a = keys[i].substring(0, keys[i].indexOf(":topic"));
+                labelout: {
+                  for (let e = 0; e < values.length; e++) {
+                    if (keys[e] == a + ":qos") {
+                      for (let z = 0; z < values.length; z++) {
+                        if (keys[z] == a + ":sens") {
+                          appenditemtovf(values[i], values[z], values[e], a);
+                          break labelout;
+                        }
+                      }
+                    }
+                  }
+                }
+                continue;
+              }
+            }
+          };
+        }
+        xhttp2.open("GET", "mqttsettings.json", true);
+        xhttp2.send();
+      };
+    }
+    xhttp.open("GET", "sensnames.json", true);
+    xhttp.send();
+
+    let xhttp3 = new XMLHttpRequest();
+    xhttp3.onreadystatechange = function () {
+      if (this.readyState == 4 && this.status == 200) {
+        let obj3 = JSON.parse(this.responseText);
+        let keys = Object.keys(obj3);
+        let values = Object.values(obj3);
+
+        for (let i = 0; i < values.length; i++) {
+          if (keys[i] == "COMMANDTOPIC") {
+            document.getElementById('COMMANDTOPIC').value = values[i];
+            continue;
+          }
+          if (keys[i] == "MQTTCOMQOS") {
+            document.getElementById('MQTTCOMQOS').value = values[i];
+            continue;
+          }
+          if (keys[i] == "RESPONSETOPIC") {
+            document.getElementById('RESPONSETOPIC').value = values[i];
+            continue;
+          }
+        }
+        addqosfilter();
+      };
+    }
+    xhttp3.open("GET", "mqttcommand.json", true);
+    xhttp3.send();
+
+  }
+
+function appenditemtovf(topic, sensname, qos, rowid) {
+    let div = document.createElement("div");
+    div.setAttribute("class", "item");
+    div.setAttribute("id", "i" + rowid);
+
+    let roit = document.createElement("div");
+    roit.setAttribute("class", "rowitem");
+    let lab = document.createElement("label");
+    lab.setAttribute("for", "t" + rowid);
+    let serial = document.createTextNode("Topic:");
+    lab.appendChild(serial);
+    roit.appendChild(lab);
+    div.appendChild(roit);
+
+    let roit1 = document.createElement("div");
+    roit1.setAttribute("class", "rowitem");
+    let inp1 = document.createElement("input");
+    inp1.setAttribute("class", "rowitem");
+    inp1.setAttribute("maxlength", "32");
+    inp1.setAttribute("size", "10");
+    inp1.setAttribute("type", "text");
+    inp1.setAttribute("id", "t" + rowid);
+    inp1.setAttribute("name", "t" + rowid);
+    inp1.setAttribute("value", topic);
+    roit1.appendChild(inp1);
+    div.appendChild(roit1);
+
+    let roit2 = document.createElement("div");
+    roit2.setAttribute("class", "rowitem");
+    let sel = document.createElement("select");
+    sel.setAttribute("id", "s" + rowid);
+    sel.setAttribute("name", "s" + rowid);
+    sel.setAttribute("class", "tempsel");
+    let opt = document.createElement("option");
+    opt.setAttribute("value", "");
+    let txt4 = document.createTextNode("--Choose a sensor--");
+    opt.appendChild(txt4);
+    sel.appendChild(opt);
+
+    for (let n = 0; n < sensornames.length; n++) {
+        if (sensornames[n] != "") {
+            let opt2 = document.createElement("option");
+            opt2.setAttribute("value", sensornames[n]);
+            let v = document.createTextNode(sensornames[n]);
+            opt2.appendChild(v);
+            sel.appendChild(opt2);
+        }
+    }
+    for (let n = 0; n < sel.length; n++) {
+        if (sel.options[n].value == sensname) {
+            sel.options[n].selected = true;
+        }
+    }
+
+    roit2.appendChild(sel);
+    div.appendChild(roit2);
+
+    let roit4 = document.createElement("div");
+    roit4.setAttribute("class", "rowitem");
+    let lab4 = document.createElement("label");
+    lab4.setAttribute("for", "q" + rowid);
+    let serial4 = document.createTextNode("QoS:");
+    lab4.appendChild(serial4);
+    roit4.appendChild(lab4);
+    div.appendChild(roit4);
+
+    let roit5 = document.createElement("div");
+    roit5.setAttribute("class", "rowitem");
+    let inp5 = document.createElement("input");
+    inp5.setAttribute("class", "sensQoS");
+    inp5.setAttribute("maxlength", "1");
+    inp5.setAttribute("size", "1");
+    inp5.setAttribute("type", "text");
+    inp5.setAttribute("id", "q" + rowid);
+    inp5.setAttribute("name", "q" + rowid);
+    inp5.setAttribute("value", qos);
+    roit5.appendChild(inp5);
+    div.appendChild(roit5);
+
+    let roit3 = document.createElement("div");
+    roit3.setAttribute("class", "rowitem");
+    let del = document.createElement("div");
+    del.setAttribute("class", "delete");
+    del.setAttribute("id", "d" + rowid);
+    del.setAttribute("onclick", "clickDelete('i" + rowid + "')");
+
+    let x = document.createTextNode("x");
+    del.appendChild(x);
+    roit3.appendChild(del);
+    div.appendChild(roit3);
+    document.getElementById("value-field").appendChild(div);
+}
+
+function clickDelete(id) {
+    let child = document.getElementById(id);
+    child.parentNode.removeChild(child);
+    if (document.getElementById("value-field").children.length == 0) {
+        document.getElementById("btnadd").focus();
+    }
+}
+
+function addbtnclick() {
+    let coll = document.getElementsByClassName("item");
+    let max = 0;
+    for (let e = 0; e < coll.length; e++) {
+        if (max < Number(coll[e].id.substr(1))) max = Number(coll[e].id.substr(1));
+    }
+    max++;
+    appenditemtovf("", "", 0, max);
+}
+
+function addqosfilter() {
+    setInputFilter(document.getElementById('WILLQOS'), function(value) {
+        return /^[0-2]*$/.test(value);
+    });
+    let qoses = document.getElementsByClassName('sensQoS');
+    for (let i = 0; i < qoses.length; i++) {
+        setInputFilter(qoses[i], function(value) {
+            return /^[0-2]*$/.test(value);
+        });
+    }
+    setInputFilter(document.getElementById('MQTTCOMQOS'), function(value) {
+        return /^[0-2]*$/.test(value);
+    });
+}
+
+function submitbtnclick() {
+	if(!/^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/.test(document.getElementById('SERVERADDRESS').value)){
+		if(!/^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z]|[A-Za-z][A-Za-z0-9\-]*[A-Za-z0-9])$/.test(document.getElementById('SERVERADDRESS').value)){
+		document.getElementById('SERVERADDRESS').style="border-color: red";
+		event.preventDefault();
+	}
+	}
+}
+document.addEventListener("DOMContentLoaded", function () {
+    fillmqttvalues();
+  });
+
+</script>
+</head>
+<body>
+<div class="header">
+  <div class="home"><img alt="Home" src = "home.svg"  onClick="location.href='wifi_index.html'"/></div>
+  <h1>ESP8266 &amp; ESP32 Management Portal - MQTT settings</h1>
+</div>
+<form action="/savemqtt/" onSubmit="submitbtnclick()"   method="POST">
+  <div class="contA">
+    <div class="contB">
+      <div class="contC">
+        <label for="SERVERADDRESS">Server address (IP/Host name):</label>
+      </div>
+      <div class="contC">
+        <input type="text" id="SERVERADDRESS" name="SERVERADDRESS" maxlength="32" size="32">
+      </div>
+      <div class="contC">
+        <label for="SERVERPORT">Port: </label>
+      </div>
+      <div class="contC">
+        <input type="text" id="SERVERPORT" name="SERVERPORT" maxlength="5" size="5">
+      </div>
+    </div>
+    <div class="contB">
+      <div class="contC">
+        <label for="USERNAME">Username: </label>
+      </div>
+      <div class="contC">
+        <input type="text" id="USERNAME" name="USERNAME" maxlength="32" size="25">
+      </div>
+      <div class="contC">
+        <label for="PASSWORD">Password: </label>
+      </div>
+      <div class="contC">
+        <input type="text" id="PASSWORD" name="PASSWORD" maxlength="32" size="25">
+      </div>
+    </div>
+    <div class="contB">
+      <div class="contC">
+        <label for="CLIENTID">Client id:</label>
+      </div>
+      <div class="contC">
+        <input type="text" id="CLIENTID" name="CLIENTID" maxlength="30" size="29">
+      </div>
+      <div class="contB">
+        <label for="cleansessionchk">Clean Session</label>
+        <input type="hidden" id="CLEANSESSION" name="CLEANSESSION" value="false">
+        <input type="checkbox"  id="cleansessionchk"  onchange="this.previousElementSibling.value=this.checked">
+      </div>
+      <div class="contC">
+        <label for="KEEPALIVE">Keep alive:</label>
+      </div>
+      <div class="contC">
+        <input type="text" id="KEEPALIVE" name="KEEPALIVE" maxlength="3" size="2">
+      </div>
+      <div class="contC">
+        <label for="KEEPALIVE">(sec)</label>
+      </div>
+    </div>
+    <div class="contB">
+      <div class="contC">
+        <label for="WILLTOPIC">Last Will topic:</label>
+      </div>
+      <div class="contC">
+        <input type="text" id="WILLTOPIC" name="WILLTOPIC" maxlength="32" size="16">
+      </div>
+      <div class="contC">
+        <label for="WILLQOS">Will QoS:</label>
+      </div>
+      <div class="contC">
+        <input type="text" id="WILLQOS" name="WILLQOS" maxlength="1" size="1">
+      </div>
+      <div class="contB">
+        <label for="willretainchk">Retain:</label>
+        <input type="hidden"  id="WILLRETAIN" name="WILLRETAIN" value="false">
+        <input type="checkbox"  id="willretainchk"  onchange="this.previousElementSibling.value=this.checked">
+      </div>
+    </div>
+    <div class="contB">
+      <div class="contC">
+        <label for="WILLTEXT">Last Will Message:</label>
+      </div>
+      <div class="contC">
+        <input type="text" id="WILLTEXT" name="WILLTEXT" maxlength="50" size="41">
+      </div>
+    </div>
+  </div>
+  <div class="contA">
+    <h3>Topics of MQTT Command</h3>
+    <div class="contB">
+      <div class="contC">
+        <label for="COMMANDTOPIC">Command topic:</label>
+      </div>
+      <div class="contC">
+        <input type="text" id="COMMANDTOPIC" name="COMMANDTOPIC" maxlength="32" size="32">
+      </div>
+    </div>
+    <div class="contB">
+      <div class="contC">
+        <label for="RESPONSETOPIC">Response topic:</label>
+      </div>
+      <div class="contC">
+        <input type="text" id="RESPONSETOPIC" name="RESPONSETOPIC" maxlength="32" size="32">
+      </div>
+    </div>
+    <div class="contB">
+      <div class="contC">
+        <label for="MQTTCOMQOS">QoS:</label>
+      </div>
+      <div class="contC">
+        <input type="text" id="MQTTCOMQOS" name="MQTTCOMQOS" maxlength="1" size="1">
+      </div>
+    </div>
+  </div>
+  <div class="contA">
+    <h3>MQTT topics for publishing temperature values</h3>
+    <div id="containervf">
+      <div id="value-field" class="value-field"></div>
+    </div>
+    <div class="contB">
+      <input type="button" value="Add" id="btnadd" onclick="addbtnclick()" />
+    </div>
+  </div>
+  <input type="submit" value="Save & Reconnect" id="btnsave" />
+</form>
+</body>
+</html>

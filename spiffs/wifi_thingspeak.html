@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>ThingSpeak</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta http-equiv="Cache-Control" content="no-cache"/>
+    <meta http-equiv="Pragma" content="no-cache" />
+    <link href="pure-all.min.css" rel="stylesheet" type="text/css" />
+   
+    <script>
+var tssec;
+var tsfmap;
+var tablenum;
+var fixedname = "";
+
+function getfixedname(fixkey, key, value) {
+    if (key == fixkey) {
+        fixedname = value;
+    }
+}
+
+function fillTSFieldmap(tx, mapk, mapv) {
+    var xhttp3 = new XMLHttpRequest();
+    xhttp3.onreadystatechange = function() {
+        if (this.readyState == 4 && this.status == 200) {
+            tsfmap = JSON.parse(this.responseText);
+            let fpair = Object.entries(tsfmap);
+            let chid = Object.keys(tssec);
+
+            for (let t = 0; t < tablenum; t++) {
+                for (let f = 1; f < 9; f++) {
+                    fixedname = "";
+                    fpair.forEach(([fkey, fvalue]) =>
+                        getfixedname(chid[t] + "_" + f, fkey, fvalue)
+                    );
+                    let selectobject = document.getElementById("t" + t + "f" + f);
+
+                    for (let i = 0; i < selectobject.length; i++) {
+                        if (selectobject.options[i].value == fixedname) {
+                            selectobject.options[i].selected = true;
+                        }
+                    }
+                }
+            }
+        }
+    };
+    xhttp3.open("GET", "tsfieldmap.json", true);
+    xhttp3.send();
+}
+
+function fillTSSecret(tx, chid, wapikey) {
+    let ch = document.getElementById("ch" + tx);
+    ch.value = chid;
+    let wrk = document.getElementById("wr" + tx);
+    wrk.value = wapikey;
+}
+
+function clickDelete(id) {
+    const tab = document.getElementById(id);
+    tab.parentNode.removeChild(tab);
+}
+
+function createTSEmptyTable(tx) {
+    let tbl = document.createElement("table");
+    var tr;
+    tbl.setAttribute("id", "t" + tx);
+    document.getElementById("tablefield").appendChild(tbl);
+    for (let i = 1; i < 9; i++) {
+        tr = document.createElement("tr");
+        if (i == 1) {
+            let th = document.createElement("th");
+            th.setAttribute("rowspan", "8");
+            let div = document.createElement("div");
+            div.setAttribute("class", "contC");
+            let lab = document.createElement("label");
+            lab.setAttribute("for", "ch" + tx);
+            let txt = document.createTextNode("ChannelID:");
+            lab.appendChild(txt);
+            let inp = document.createElement("input");
+            inp.setAttribute("type", "text");
+            inp.setAttribute("id", "ch" + tx);
+            inp.setAttribute("name", "t" + tx + "ch");
+            inp.setAttribute("maxlength", "16");
+            inp.setAttribute("size", "16");
+            div.appendChild(lab);
+            div.appendChild(inp);
+            th.appendChild(div);
+
+            let div2 = document.createElement("div");
+            div2.setAttribute("class", "contC");
+            let lab2 = document.createElement("label");
+            lab2.setAttribute("for", "wr" + tx);
+            let txt2 = document.createTextNode("WriteAPIKey:");
+            lab2.appendChild(txt2);
+            let inp2 = document.createElement("input");
+            inp2.setAttribute("type", "text");
+            inp2.setAttribute("id", "wr" + tx);
+            inp2.setAttribute("name", "t" + tx + "wr");
+            inp2.setAttribute("maxlength", "16");
+            inp2.setAttribute("size", "16");
+            div2.appendChild(lab2);
+            div2.appendChild(inp2);
+            th.appendChild(div2);
+
+            tr.appendChild(th);
+
+        }
+        let td = document.createElement("td");
+        let div3 = document.createElement("div");
+        div3.setAttribute("class", "contB");
+        let lab3 = document.createElement("label");
+        lab3.setAttribute("for", "t" + tx + "f" + i);
+        let txt3 = document.createTextNode("Field" + i + ": ");
+        lab3.appendChild(txt3);
+        let sel = document.createElement("select");
+        sel.setAttribute("id", "t" + tx + "f" + i);
+        sel.setAttribute("name", "t" + tx + "f" + i);
+        sel.setAttribute("class", "tempsel");
+        let opt = document.createElement("option");
+        opt.setAttribute("value", "");
+        let txt4 = document.createTextNode("--Choose a sensor--");
+        opt.appendChild(txt4);
+
+        sel.appendChild(opt);
+        div3.appendChild(lab3);
+        div3.appendChild(sel);
+        td.appendChild(div3);
+        tr.appendChild(td);
+
+        if (i == 1) {
+            let thd = document.createElement("th");
+            thd.setAttribute("rowspan", "8");
+            let del = document.createElement("div");
+            del.setAttribute("id", "d" + tx);
+            del.setAttribute("class", "delete");
+            del.setAttribute("onclick", "clickDelete('t" + tx + "')");
+            let x = document.createTextNode("X");
+            del.appendChild(x);
+            thd.appendChild(del);
+            tr.appendChild(thd);
+        }
+        document.getElementById("t" + tx).appendChild(tr);
+    }
+}
+
+function createTables() {
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4 && this.status == 200) {
+            tssec = JSON.parse(this.responseText);
+
+            tablenum = Object.keys(tssec).length;
+            var keys = Object.keys(tssec);
+            var values = Object.values(tssec);
+
+            for (let i = 0; i < tablenum; i++) {
+                createTSEmptyTable(i);
+                fillTSSecret(i, keys[i], values[i]);
+            }
+
+            var xhttp2 = new XMLHttpRequest();
+            xhttp2.onreadystatechange = function() {
+                if (this.readyState == 4 && this.status == 200) {
+                    let obj = JSON.parse(this.responseText);
+                    let names = Object.values(obj);
+
+                    for (let t = 0; t < tablenum; t++) {
+                        for (let f = 1; f < 9; f++) {
+                            for (let n = 0; n < names.length; n++) {
+                                let opt = document.createElement("option");
+                                opt.setAttribute("value", names[n]);
+                                let v = document.createTextNode(names[n]);
+                                opt.appendChild(v);
+                                document.getElementById("t" + t + "f" + f).appendChild(opt);
+                            }
+                        }
+                    }
+                    fillTSFieldmap();
+                }
+            };
+
+            xhttp2.open("GET", "sensnames.json", true);
+            xhttp2.send();
+        }
+    };
+    xhttp.open("GET", "tssecret.json", true);
+    xhttp.send();
+}
+
+function addbtnclick() {
+    tablenum++;
+    createTSEmptyTable(tablenum);
+    var xhttp2 = new XMLHttpRequest();
+    xhttp2.onreadystatechange = function() {
+        if (this.readyState == 4 && this.status == 200) {
+            let obj = JSON.parse(this.responseText);
+            let names = Object.values(obj);
+
+            for (let f = 1; f < 9; f++) {
+                for (let n = 0; n < names.length; n++) {
+                    let opt = document.createElement("option");
+                    opt.setAttribute("value", names[n]);
+                    let v = document.createTextNode(names[n]);
+                    opt.appendChild(v);
+                    document.getElementById("t" + tablenum + "f" + f).appendChild(opt);
+                }
+			}
+        }
+    };
+
+    xhttp2.open("GET", "sensnames.json", true);
+    xhttp2.send();
+}
+
+window.addEventListener('DOMContentLoaded', function() {
+    createTables();
+});
+    </script>
+  </head>
+  <body>
+    <div class="header">
+      <div class="home"><img alt = "Home" src = "home.svg"  onClick="location.href='wifi_index.html'"/></div>
+    <h1>ESP8266 & ESP32 Management Portal - Thingspeak</h1>
+    </div>
+    <form action="/saveThingspeak/" method="POST">
+      <div id="tablefield"></div>
+      <br />
+      <input type="button" value="Add" onclick="addbtnclick()" />
+	    <input type="button" value="Reload" onclick= "window.location.href = '/wifi_thingspeak.html'" />
+      <input type="submit" value="Save" />
+    </form>
+  </body>
+</html>
