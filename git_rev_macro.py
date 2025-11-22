@@ -4,11 +4,15 @@ git_rev = (
     .strip()
     .decode("utf-8")
 )
-git_tag = (
-    subprocess.check_output(["git", "describe", "--tags"])
-    .strip()
-    .decode("utf-8")
-)
+try:
+    git_tag = (
+        subprocess.check_output(["git", "describe", "--tags"])
+        .strip()
+        .decode("utf-8")
+    )
+except subprocess.CalledProcessError:
+    # No tags found, use a default value
+    git_tag = "v0.0.0-dev"
 
 git_branch = (
     subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"])

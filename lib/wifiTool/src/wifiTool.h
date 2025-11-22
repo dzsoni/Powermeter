@@ -31,10 +31,7 @@
 
 #include <ESPAsyncWebServer.h>
 #include <SimpleJsonParser.h>
-#include <NTPtimeESP.h>
-#include <struct_hardwares.h>
-#include <Wire.h>
-#include <RtcDS3231.h>
+#include <..\..\src\struct_hardwares.h>
 #include <MQTTMediator.h>
 #include <WifiManager.h>
 
@@ -57,7 +54,7 @@ struct struct_hardwares;
 class WifiTool
 {
 public:
-  WifiTool(AsyncWebServer& server, struct_hardwares* sh, strDateTime &strdt_ , NTPtime &ntp_, RtcDS3231<TwoWire>& rtc, MQTTMediator& mediator , WifiManager& wifimanager);
+  WifiTool(struct_hardwares& sh);
   ~WifiTool();
   void process();
   void begin();
@@ -65,18 +62,9 @@ public:
 private:
   void setUpSoftAP();
   unsigned long         _restartsystem;
-  unsigned long         _last_connect_atempt;
-  bool                  _connecting;
-  byte                  _last_connected_network;
   SimpleJsonParser      _sjsonp;
-  AsyncWebServer&       _server;
-  struct_hardwares*     _sh;
-  strDateTime&          _strdt;
-  NTPtime&               _ntp;
-  RtcDS3231<TwoWire>&    _rtc;
-  MQTTMediator&          _mediator;
-  WifiManager&           _wifimanager;
-  File                   _fsUploadFile;
+  struct_hardwares&     _sh;
+  File                  _fsUploadFile;
 
   std::unique_ptr<DNSServer> dnsServer;
   
@@ -87,16 +75,11 @@ private:
   void  handleFileDelete(AsyncWebServerRequest *request);
   void  getWifiScanJson(AsyncWebServerRequest *request);
   void  handleSaveSecretJson(AsyncWebServerRequest *request);
-  void  handleGetTemp(AsyncWebServerRequest *request);
-  void  handleSaveNTPJson(AsyncWebServerRequest *request);
-  void  handleSendTime(AsyncWebServerRequest *request);
   void  handleSaveThingspeakJson(AsyncWebServerRequest *request);
   void  handleSaveMqtt(AsyncWebServerRequest* request);
   void  handleGetMqttjson(AsyncWebServerRequest *request);
   int   getRSSIasQuality(int RSSI);
   void  handleUpload(AsyncWebServerRequest *request, String filename, String redirect, size_t index, uint8_t *data, size_t len, bool final);
-  void  handleGetUnknownSenors(AsyncWebServerRequest *request);
-  void  handleGetLiveSensors(AsyncWebServerRequest *request);
   void  handleGetDeviceNames(AsyncWebServerRequest *request);
   void  handleGetfilteredCommands(AsyncWebServerRequest *request);
   void  handleGetDeviceUsernames(AsyncWebServerRequest *request);
@@ -105,7 +88,6 @@ private:
   void  handleSaveCommandFilter(AsyncWebServerRequest *request);
   void  handleFileDownload(AsyncWebServerRequest *request);
   void  handleGetVersion(AsyncWebServerRequest *request);
-  void  handleSaveRelays(AsyncWebServerRequest *request);
 };
 
 #endif /* WIFITOOL_H */

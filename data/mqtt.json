@@ -2,7 +2,7 @@
 "SERVERPORT":"1883",
 "USERNAME":"",
 "PASSWORD":"",
-"CLIENTID":"esp8266-dca785",
+"CLIENTID":"mqttmediator",
 "CLEANSESSION":"true",
 "KEEPALIVE":"15",
 "WILLTOPIC":"status",
