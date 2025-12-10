@@ -1,25 +1,13 @@
 #include "task_defs.h"
 
-extern struct_hardwares sh;
-extern AsyncMqttClient mqttClient;
+extern struct_hardwares* sh;
 
+
+uint8_t brightness=RGB_BRIGHTNESS/8 ;
 
 void t1Cb_secTimer()
 {
-  digitalWrite(FLASH_LED, !digitalRead(FLASH_LED));
+  (brightness<RGB_BRIGHTNESS/16)?brightness++:brightness=0; //increase brightness
+  neopixelWrite(RGB_BUILTIN,0,brightness,0); // Green
 }
 
-void t2Cb_writeMQTT()
-{
-  if (WiFi.isConnected())
-  {
-    SimpleJsonParser jsp;
-
-     //mqtt publish
-    if (sh.connected())
-    {
-      Serial.println(F("Try publishing to MQTT server."));
-      
-    }
-  }
-}

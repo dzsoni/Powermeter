@@ -50,10 +50,18 @@ WifiManager::~WifiManager()
  */
 void WifiManager::begin()
 {
-    SPIFFS.begin();
+    // SPIFFS should already be initialized in main setup()
     _connecting = false;
     WiFi.mode(WIFI_AP_STA);
-    loadCredentials();    
+    
+    // Only load credentials if SPIFFS is available
+    if (SPIFFS.begin(false)) { // Don't format, just check if mounted
+        loadCredentials();
+    } else {
+        Serial.println(F("WifiManager: SPIFFS not available, using defaults"));
+        // Initialize with default empty credentials
+        _apscredentials.assign(MAX_SSID_NUM, std::make_pair("", ""));
+    }
     setupSoftAP();
 }
 
@@ -103,6 +111,13 @@ void WifiManager::setPathToSecretjson(String pathTosecretjson)
  */
 void WifiManager::loadCredentials()
 {
+    // Check if SPIFFS is mounted before trying to access files
+    if (!SPIFFS.exists(_pathToSecretjson)) {
+        Serial.println(F("WifiManager: Secrets file not found, using defaults"));
+        _apscredentials.assign(MAX_SSID_NUM, std::make_pair("", ""));
+        return;
+    }
+    
     SimpleJsonParser sjsonp;
     _apscredentials.clear();
     for (uint8_t i = 0; i < MAX_SSID_NUM; i++)
@@ -113,6 +128,7 @@ void WifiManager::loadCredentials()
         _apscredentials.push_back(std::make_pair(assid, apass));
     }
     _APpassword = sjsonp.getValueByKeyFromFile(_pathToSecretjson, "APpassw");
+    Serial.println(F("WifiManager: Credentials loaded successfully"));
 }
 
 /**

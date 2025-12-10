@@ -13,5 +13,4 @@
 
 // Callback methods prototypes
 void t1Cb_secTimer();
-void t2Cb_writeMQTT();
 #endif /* TASK_DEFS_H */

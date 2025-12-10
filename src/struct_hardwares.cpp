@@ -6,6 +6,25 @@
 
 void mqtt_settings_struct::loadMQTTsettings()
 {
+  // Check if SPIFFS is mounted and file exists before trying to load
+  if (!SPIFFS.exists(MQTT_SETTINGS_JSON)) {
+    Serial.println(F("MQTT settings file not found, using defaults"));
+    mqtt_Tempsens_Vector.clear();
+    // Set some reasonable defaults
+    mqttServer = "";
+    mqttPort = 1883;
+    mqttUser = "";
+    mqttPassword = "";
+    mqttClientId = "ESP32_PowerMeter";
+    mqttCleanSession = true;
+    mqttRetain = false;
+    mqttKeepAlive = 60;
+    mqttWillTopic = "/status";
+    mqttQoS = 0;
+    mqttWillText = "offline";
+    return;
+  }
+  
   SimpleJsonParser sjp;
   mqtt_Tempsens_Vector.clear();
   std::vector<std::pair<String, String>> vec;
@@ -129,13 +148,20 @@ void mqtt_settings_struct::saveMQTTsettings()
     sjw.addKeyValue(String(i) + ":sens", mqtt_Tempsens_Vector.at(i).sensName);
     sjw.addKeyValue(String(i) + ":qos", String(mqtt_Tempsens_Vector.at(i).QoS));
   }
+  // Check if SPIFFS is available before trying to save
+  if (!SPIFFS.begin(false)) {
+    Serial.println(F("MQTT settings save failed: SPIFFS not available"));
+    return;
+  }
+  
   File file = SPIFFS.open(MQTT_SETTINGS_JSON, "w");
   if (!file)
   {
-    //(F("Error opening file for writing."));
+    Serial.println(F("MQTT settings save failed: Error opening file for writing"));
     return;
   }
   file.print(sjw.getJsonString());
   file.flush();
   file.close();
+  Serial.println(F("MQTT settings saved successfully"));
 }
