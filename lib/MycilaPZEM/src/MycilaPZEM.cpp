@@ -833,19 +833,50 @@ void Mycila::PZEM::_remove(PZEM* pzem) {
 }
 
 void Mycila::PZEM::_pzemTask(void* params) {
+  size_t currentIndex = 0;
+  const uint32_t READ_INTERVAL_MS = 100;
+
   while (true) {
-    bool read = false;
+    bool readPerformed = false;
+    uint32_t startTime = millis();
+
     {
       std::lock_guard<std::recursive_mutex> lock(_mutex);
-      for (size_t i = 0; i < MYCILA_PZEM_ASYNC_MAX_INSTANCES; i++) {
-        if (_instances[i] != nullptr) {
-          read |= _instances[i]->read();
-          yield();
+      // Find next active instance
+      size_t checks = 0;
+      while (checks < MYCILA_PZEM_ASYNC_MAX_INSTANCES)
+      {
+        if (_instances[currentIndex] != nullptr)
+        {
+          // Found one! Read it while holding the lock.
+          _instances[currentIndex]->read();
+          readPerformed = true;
+
+          // Advance index for next iteration
+          currentIndex = (currentIndex + 1) % MYCILA_PZEM_ASYNC_MAX_INSTANCES;
+          break;
         }
+        // Move to next slot
+        currentIndex = (currentIndex + 1) % MYCILA_PZEM_ASYNC_MAX_INSTANCES;
+        checks++;
       }
     }
-    if (!read)
-      delay(10);
+
+    if (readPerformed)
+    {
+      // Wait for the remainder of the interval
+      uint32_t elapsed = millis() - startTime;
+      if (elapsed < READ_INTERVAL_MS)
+      {
+        vTaskDelay((READ_INTERVAL_MS - elapsed) / portTICK_PERIOD_MS);
+      }else{
+        // If read took too long (e.g. timeout), yield briefly
+        vTaskDelay(10 / portTICK_PERIOD_MS);
+      }
+    }else{
+      // No active instances found, wait a bit
+      vTaskDelay(100 / portTICK_PERIOD_MS);
+    }
   }
   _taskHandle = NULL;
   vTaskDelete(NULL);
