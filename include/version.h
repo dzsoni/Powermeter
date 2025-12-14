@@ -1,9 +1,9 @@
 #ifndef VERSION_H
 #define VERSION_H
 
-#define GIT_REVISION    "466a3a2a0966cf0ac07f249c82c6156353a6875a"
-#define GIT_TAG         "v0.0.0-dev"
-#define GIT_BRANCH      "main"
-#define BUILD_TIME      "2025\12\11 21:34:00"
+#define GIT_REVISION    "9ddc4e8b49802f067bb2709b8ccd2ab1fb39eac7"
+#define GIT_TAG         "0.0.1"
+#define GIT_BRANCH      "as2"
+#define BUILD_TIME      "2025\12\14 19:58:23"
 
 #endif /* VERSION_H */

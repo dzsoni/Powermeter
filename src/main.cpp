@@ -63,16 +63,13 @@ Task* mqttReconnectTimer = nullptr;
 void setup() {
   // Disable watchdog completely during setup
   esp_task_wdt_deinit();
-  
   delay(3000);
-  
   Serial.begin(115200);
   delay(2000);
+
   Serial.println(F("\n=== POWERMETER STARTING ==="));
-  Serial.flush();
-  
   Serial.println(F("Step 1: Initializing global objects..."));
-  Serial.flush();
+  
   
   // Initialize objects dynamically to avoid stack overflow during global initialization
   mqttmediator = new MQTTMediator();
@@ -96,7 +93,7 @@ void setup() {
   mqttReconnectTimer = new Task(10000, TASK_FOREVER, &connectToMqtt, taskManager, false);
   
   Serial.println(F("Step 1: Global objects DONE"));
-  Serial.flush();
+ 
   
   // CRITICAL FIX: Initialize SPIFFS BEFORE loading settings that depend on it
   Serial.println(F("Step 2: Starting SPIFFS initialization..."));
@@ -108,7 +105,7 @@ void setup() {
       Serial.println(F("SPIFFS format failed! Using defaults"));
     }
   }
-  Serial.println(F("Step 2: SPIFFS DONE"));
+  Serial.println(F("Step 2: SPIFFS DONE."));
   Serial.flush();
 
   Serial.println(F("Step 3: Loading MQTT settings..."));
@@ -145,7 +142,7 @@ void setup() {
 
   //tuplecorefactory->addDeviceInitFunction(&wifimanager,"wifimanager");
 
-  Serial.println(F("Step 3: DONE"));
+  Serial.println(F("Step 3: DONE."));
   Serial.flush();
   
   Serial.println(F("Step 4: Version info..."));
@@ -155,31 +152,29 @@ void setup() {
   Serial.println(__TIME__);
   Serial.printf("CPU: %u MHz, Free Heap: %u bytes\n", ESP.getCpuFreqMHz(), ESP.getFreeHeap());
   Serial.flush();
-  Serial.println(F("Step 4: DONE"));
+  Serial.println(F("Step 4: DONE."));
   Serial.flush();
 
   // Initialize components that need SPIFFS
   Serial.println(F("Step 5: Starting BasicOTA..."));
-  Serial.flush();
   BasicOTA.begin(webserver);
-  Serial.println(F("Step 5: BasicOTA DONE"));
-  Serial.flush();
+  Serial.println(F("Step 5: BasicOTA DONE."));
   
   Serial.println(F("Step 6: Starting WiFiManager..."));
-  Serial.flush();
+  
   wifimanager->begin(); // Now safe - SPIFFS is ready and WifiManager has error handling
-  Serial.println(F("Step 6: WiFiManager DONE"));
-  Serial.flush();
+  Serial.println(F("Step 6: WiFiManager DONE."));
+  
   
   Serial.println(F("Step 7: Starting WiFiTool..."));
-  Serial.flush();
+  
   wifiTool->begin();
-  Serial.println(F("Step 7: WiFiTool DONE"));
-  Serial.flush();
+  Serial.println(F("Step 7: WiFiTool DONE."));
+  
   
   // MQTT event handlers
   Serial.println(F("Step 8: Setting up MQTT events..."));
-  Serial.flush();
+ 
   #ifdef ARDUINO_ARCH_ESP32
   WiFi.onEvent(onWifiConnect,  ARDUINO_EVENT_WIFI_STA_CONNECTED);
   WiFi.onEvent(onWifiDisconnect, ARDUINO_EVENT_WIFI_STA_DISCONNECTED);
@@ -188,32 +183,25 @@ void setup() {
   wifiDisconnectHandler = WiFi.onStationModeDisconnected(onWifiDisconnect);
   #endif
   Serial.println(F("Step 8: MQTT events DONE"));
-  Serial.flush();
   
 Serial.println(F("Step 8.5: Setting up PZEM callbacks..."));
-Serial.flush();
 
 pzem1->setCallback([](const Mycila::PZEM::EventType eventType, const Mycila::PZEM::Data& data) {
   
   if(eventType == Mycila::PZEM::EventType::EVT_READ_ERROR) {
     Serial.println("L1 READ_ERROR");
-    Serial.flush();
     return;
   }
   if(eventType == Mycila::PZEM::EventType::EVT_READ_TIMEOUT){
     Serial.println("L1 READ_TIMEOUT");
-    Serial.flush();
     return;
   }
   if(eventType == Mycila::PZEM::EventType::EVT_READ){
     Serial.printf("L1 EVT_READ (SUCCESS): %f V, %f A, %f W\n", data.voltage, data.current, data.activePower);
-    Serial.flush();
     return;
   }
   
-  Serial.printf(" - %" PRIu32 "L1 EVT_UNKNOWN: %f V, %f A, %f W\n", millis(), data.voltage, data.current, data.activePower);
-  Serial.flush();
-    
+  Serial.printf(" - %" PRIu32 "L1 EVT_UNKNOWN: %f V, %f A, %f W\n", millis(), data.voltage, data.current, data.activePower);  
   });
 pzem2->setCallback([](const Mycila::PZEM::EventType eventType, const Mycila::PZEM::Data& data) {
     
@@ -234,7 +222,6 @@ pzem2->setCallback([](const Mycila::PZEM::EventType eventType, const Mycila::PZE
     }
     
     Serial.printf(" - %" PRIu32 "L2 EVT_UNKNOWN: %f V, %f A, %f W\n", millis(), data.voltage, data.current, data.activePower);
-    Serial.flush();
     
   });
 pzem3->setCallback([](const Mycila::PZEM::EventType eventType, const Mycila::PZEM::Data& data) {
@@ -264,10 +251,9 @@ pzem3->setCallback([](const Mycila::PZEM::EventType eventType, const Mycila::PZE
   pzem3->begin(Serial1, RX_pin, TX_pin, 0x03, true);
  
   Serial.println(F("Step 9: PZEM async initialization DONE"));
-  Serial.flush();
-
+  
   Serial.println(F("=== SETUP COMPLETE ==="));
-  Serial.flush();
+  
   // Re-enable watchdog with longer timeout
   Serial.println(F("Re-enabling watchdog..."));
   
@@ -275,9 +261,8 @@ pzem3->setCallback([](const Mycila::PZEM::EventType eventType, const Mycila::PZE
   esp_task_wdt_add(NULL);
   // Start tasks only after everything is initialized
   task1->enable();
-  Serial.println(F("Tasks enabled"));
-  Serial.flush();
-
+  Serial.println(F("Tasks enabled."));
+  
   Serial.printf("Total heap: %d\n", ESP.getHeapSize());
   Serial.printf("Free heap: %d\n", ESP.getFreeHeap());
   Serial.printf("Total PSRAM: %d\n", ESP.getPsramSize());
@@ -288,30 +273,19 @@ void loop() {
   // Reset watchdog early in loop
   esp_task_wdt_reset();
   yield();
-  
-
   wifiTool->process();
-
   yield();
   esp_task_wdt_reset(); // Extra watchdog feed
-  
-
   taskManager->execute();
   yield();
   esp_task_wdt_reset(); // Extra watchdog feed
-
   commandcenter->process();
-  
   yield();
   esp_task_wdt_reset(); // Extra watchdog feed
-  
   serialcommand->processSerialInput();
-  
   yield();
   esp_task_wdt_reset(); // Extra watchdog feed
-
   wifimanager->wifiAutoReconnect();
- 
   yield();
   
 }
