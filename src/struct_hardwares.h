@@ -7,7 +7,7 @@
 #include "MQTTMediator.h"
 #include <utility>
 #include <enum_CommandRepo.h>
-#include "..\wifiTool\include\definitions.h"
+#include "..\lib\wifiTool\include\definitions.h"
 #include "CommandCenter.h"
 #include "TupleCoreFactory.h"
 #include "SimpleJsonWriter.h"
@@ -55,13 +55,15 @@ struct struct_hardwares:public MedClient
                      MQTT_Command& mqttCommand,
                      IMQTTMediator* mqttMediator_for_sh,
                      MQTTMediator& mqttmediator,
-                     WifiManager& wifimanager):
+                     WifiManager& wifimanager,
+                     std::vector<Mycila::PZEM*>& pzems):
                     webserver(webserver),
                     tuplefactory(tuplefactory),
                     comcenter(comcenter),
                     mqttCommand(mqttCommand),
                     mqttmediator(mqttmediator),
-                    wifimanager(wifimanager)
+                    wifimanager(wifimanager),
+                    pzems(pzems)
                     {MedClient::setMQTTMediator(mqttMediator_for_sh);};    
     
     AsyncWebServer& webserver;   
@@ -71,6 +73,7 @@ struct struct_hardwares:public MedClient
     MQTTMediator& mqttmediator;
     WifiManager& wifimanager;
     mqtt_settings_struct mqttstruct;
+    std::vector<Mycila::PZEM*>& pzems;
 };
 
 #endif /* STRUCT_HARDWARES_H */

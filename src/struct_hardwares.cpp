@@ -110,7 +110,7 @@ void mqtt_settings_struct::loadMQTTsettings()
                 int y=x.first.substring(0,x.first.indexOf(":qos")).toInt();
                 if(y==index)
                 {
-                  mqtt_Tempsens_Vector.emplace_back((mqtt_tempsens_settings){e.second,i.second,x.second.toInt()});
+                  mqtt_Tempsens_Vector.emplace_back((mqtt_tempsens_settings){e.second,i.second,std::stoul(x.second.c_str())});
                   goto leave;
                 }
               }

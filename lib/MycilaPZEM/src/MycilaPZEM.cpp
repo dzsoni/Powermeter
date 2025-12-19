@@ -412,7 +412,7 @@ bool Mycila::PZEM::read(uint8_t address) {
     return false;
 
   // Per-serial blocking instead of the previous global mutex
-  std::lock_guard<std::recursive_mutex> lock(getSerialMutex(_serial));
+  std::lock_guard<std::recursive_mutex> lock(_getSerialMutex(_serial));
 
   _send(address, PZEM_CMD_RIR, PZEM_REGISTER_VOLTAGE, PZEM_REGISTER_COUNT);
   ReadResult result = _timedRead(address, PZEM_RESPONSE_SIZE_READ_METRICS);
@@ -484,7 +484,7 @@ bool Mycila::PZEM::resetEnergy(uint8_t address) {
   LOGD(TAG, "resetEnergy(0x%02X)", address);
 
   // Per-serial blocking
-  std::lock_guard<std::recursive_mutex> lock(getSerialMutex(_serial));
+  std::lock_guard<std::recursive_mutex> lock(_getSerialMutex(_serial));
 
   _buffer[0] = address;
   _buffer[1] = PZEM_CMD_REST;
@@ -512,7 +512,7 @@ bool Mycila::PZEM::setDeviceAddress(const uint8_t address, const uint8_t newAddr
   }
 
   // Per-serial blocking
-  std::lock_guard<std::recursive_mutex> lock(getSerialMutex(_serial));
+  std::lock_guard<std::recursive_mutex> lock(_getSerialMutex(_serial));
 
   LOGD(TAG, "setDeviceAddress(0x%02X, 0x%02X)", address, newAddress);
 
@@ -524,7 +524,7 @@ bool Mycila::PZEM::setDeviceAddress(const uint8_t address, const uint8_t newAddr
     return false;
   }
 
-  if (!_canRead(newAddress)) {
+  if (!canRead(newAddress)) {
     LOGE(TAG, "Unable to read PZEM @ 0x%02X", newAddress);
     return false;
   }
@@ -542,7 +542,7 @@ uint8_t Mycila::PZEM::readDeviceAddress(bool update) {
     return false;
 
   // Per-serial blocking
-  std::lock_guard<std::recursive_mutex> lock(getSerialMutex(_serial));
+  std::lock_guard<std::recursive_mutex> lock(_getSerialMutex(_serial));
 
   uint8_t address = MYCILA_PZEM_ADDRESS_UNKNOWN;
 
@@ -569,7 +569,7 @@ size_t Mycila::PZEM::search(uint8_t* addresses, const size_t maxCount) {
     return 0;
 
   // Per-serial blocking
-  std::lock_guard<std::recursive_mutex> lock(getSerialMutex(_serial));
+  std::lock_guard<std::recursive_mutex> lock(_getSerialMutex(_serial));
 
   size_t count = 0;
 
@@ -591,8 +591,7 @@ size_t Mycila::PZEM::search(uint8_t* addresses, const size_t maxCount) {
 
 #ifdef MYCILA_JSON_SUPPORT
 void Mycila::PZEM::toJson(const JsonObject& root) const {
-  // Per-serial blocking
-  std::lock_guard<std::recursive_mutex> lock(const_cast<PZEM*>(this)->getSerialMutex(_serial));
+  std::lock_guard<std::recursive_mutex> lock(const_cast<PZEM*>(this)->_getSerialMutex(_serial));
   root["enabled"] = _enabled;
   root["address"] = _address;
   root["time"] = _time;
@@ -659,7 +658,7 @@ Mycila::PZEM::ReadResult Mycila::PZEM::_timedRead(uint8_t expectedAddress, size_
   return ReadResult::READ_SUCCESS;
 }
 
-bool Mycila::PZEM::_canRead(uint8_t address) {
+bool Mycila::PZEM::canRead(uint8_t address) {
 #ifdef MYCILA_PZEM_DEBUG
   Serial.printf("[PZEM] _canRead(0x%02X)\n", address);
 #endif
@@ -774,8 +773,8 @@ bool Mycila::PZEM::_add(PZEM* pzem) {
         pzem->_openSerial(pzem->_pinRX, pzem->_pinTX);
 
         {
-          std::lock_guard<std::recursive_mutex> serialLock(pzem->getSerialMutex(pzem->_serial));
-          if (!pzem->_canRead(pzem->_address)) {
+          std::lock_guard<std::recursive_mutex> serialLock(pzem->_getSerialMutex(pzem->_serial));
+          if (!pzem->canRead(pzem->_address)) {
             LOGW(TAG, "Unable to read at address 0x%02X. Please verify that the device is powered and that its address is correctly set.", pzem->_address);
           }
         }
@@ -793,8 +792,8 @@ bool Mycila::PZEM::_add(PZEM* pzem) {
 
       } else {
         {
-          std::lock_guard<std::recursive_mutex> serialLock(pzem->getSerialMutex(pzem->_serial));
-          if (!pzem->_canRead(pzem->_address)) {
+          std::lock_guard<std::recursive_mutex> serialLock(pzem->_getSerialMutex(pzem->_serial));
+          if (!pzem->canRead(pzem->_address)) {
             LOGW(TAG, "Unable to read at address 0x%02X. Please verify that the device is powered and that its address is correctly set.", pzem->_address);
           }
         }
@@ -884,7 +883,7 @@ void Mycila::PZEM::_pzemTask(void* params) {
 #endif
 
 // Serial-specific mutex getter implementation
-std::recursive_mutex& Mycila::PZEM::getSerialMutex(HardwareSerial* serial) {
+std::recursive_mutex& Mycila::PZEM::_getSerialMutex(HardwareSerial* serial) {
   std::lock_guard<std::mutex> lock(_serialRegistry);
   
   // Search in the vector

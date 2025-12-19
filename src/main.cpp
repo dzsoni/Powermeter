@@ -21,6 +21,8 @@
 
 #include <ArduinoJson.h>
 #include <MycilaPZEM.h>
+#include "pzem_mqtt_publisher.h"
+#include "..\lib\wifiTool\include\definitions.h"
 
 #ifdef ARDUINO_ARCH_ESP32
 #include <WiFi.h>
@@ -49,17 +51,21 @@ Scheduler*           taskManager = nullptr;
 WifiManager*         wifimanager = nullptr;
 struct_hardwares*    sh = nullptr;
 WifiTool*            wifiTool = nullptr;
+PzemMqttPublisher*   pzemmqttpublisher = nullptr;
 
-Mycila::PZEM*     pzem1=nullptr; // 0x01
-Mycila::PZEM*     pzem2=nullptr; // 0x02
-Mycila::PZEM*     pzem3=nullptr; // 0x03
 
-Mycila::PZEM::Data pzem1Data, pzem2Data, pzem3Data;
+Mycila::PZEM* pzem1= nullptr; // 0x01
+Mycila::PZEM* pzem2= nullptr; // 0x02
+Mycila::PZEM* pzem3= nullptr; // 0x03
+
+std::vector<Mycila::PZEM*> pzems;
+
+
 
 // Global Task pointers - initialized in setup()
 Task* task1 = nullptr;
 Task* mqttReconnectTimer = nullptr;
-
+//-----------------------------------------------------
 void setup() {
   // Disable watchdog completely during setup
   esp_task_wdt_deinit();
@@ -80,13 +86,19 @@ void setup() {
   webserver = new AsyncWebServer(80);
   taskManager = new Scheduler();
   wifimanager = new WifiManager();
-  
-  sh = new struct_hardwares(*webserver, *tuplecorefactory, *commandcenter, *mqttcommand, mqttmediator, *mqttmediator, *wifimanager);
-  wifiTool = new WifiTool(*sh);
-  
+
   pzem1 = new Mycila::PZEM();
   pzem2 = new Mycila::PZEM();
   pzem3 = new Mycila::PZEM();
+
+  pzems = { pzem1, pzem2, pzem3 };
+
+  pzemmqttpublisher = new PzemMqttPublisher(mqttmediator, pzems, MQTT_SETTINGS_JSON,1);
+
+
+  sh = new struct_hardwares(*webserver, *tuplecorefactory, *commandcenter, *mqttcommand, mqttmediator, *mqttmediator, *wifimanager, pzems);
+  wifiTool = new WifiTool(*sh);
+  
   
   // Initialize tasks
   task1 = new Task(1000, TASK_FOREVER, &t1Cb_secTimer, taskManager, false);
@@ -94,8 +106,6 @@ void setup() {
   
   Serial.println(F("Step 1: Global objects DONE"));
  
-  
-  // CRITICAL FIX: Initialize SPIFFS BEFORE loading settings that depend on it
   Serial.println(F("Step 2: Starting SPIFFS initialization..."));
   Serial.flush();
   
@@ -140,8 +150,6 @@ void setup() {
   mqttcommand->setOnDisconnect([&](AsyncMqttClientDisconnectReason reason){Serial.println("MQTT_Command: Disconnected. Reason: "+ String(uint8_t(reason)));});
 
 
-  //tuplecorefactory->addDeviceInitFunction(&wifimanager,"wifimanager");
-
   Serial.println(F("Step 3: DONE."));
   Serial.flush();
   
@@ -184,67 +192,13 @@ void setup() {
   #endif
   Serial.println(F("Step 8: MQTT events DONE"));
   
-Serial.println(F("Step 8.5: Setting up PZEM callbacks..."));
-
-pzem1->setCallback([](const Mycila::PZEM::EventType eventType, const Mycila::PZEM::Data& data) {
+  Serial.println(F("Step 8.5: Setting up PZEM callbacks..."));
   
-  if(eventType == Mycila::PZEM::EventType::EVT_READ_ERROR) {
-    Serial.println("L1 READ_ERROR");
-    return;
-  }
-  if(eventType == Mycila::PZEM::EventType::EVT_READ_TIMEOUT){
-    Serial.println("L1 READ_TIMEOUT");
-    return;
-  }
-  if(eventType == Mycila::PZEM::EventType::EVT_READ){
-    Serial.printf("L1 EVT_READ (SUCCESS): %f V, %f A, %f W\n", data.voltage, data.current, data.activePower);
-    return;
-  }
+  #include "pzem_callbacks.h"
   
-  Serial.printf(" - %" PRIu32 "L1 EVT_UNKNOWN: %f V, %f A, %f W\n", millis(), data.voltage, data.current, data.activePower);  
-  });
-pzem2->setCallback([](const Mycila::PZEM::EventType eventType, const Mycila::PZEM::Data& data) {
-    
-    if(eventType == Mycila::PZEM::EventType::EVT_READ_ERROR) {
-      Serial.println("L2 READ_ERROR");
-      Serial.flush();
-      return;
-    }
-    if(eventType == Mycila::PZEM::EventType::EVT_READ_TIMEOUT){
-      Serial.println("L2 READ_TIMEOUT");
-      Serial.flush();
-      return;
-    }
-    if(eventType == Mycila::PZEM::EventType::EVT_READ){
-      Serial.printf("L2 EVT_READ (SUCCESS): %f V, %f A, %f W\n", data.voltage, data.current, data.activePower);
-      Serial.flush();
-      return;
-    }
-    
-    Serial.printf(" - %" PRIu32 "L2 EVT_UNKNOWN: %f V, %f A, %f W\n", millis(), data.voltage, data.current, data.activePower);
-    
-  });
-pzem3->setCallback([](const Mycila::PZEM::EventType eventType, const Mycila::PZEM::Data& data) {
-    
-    if(eventType == Mycila::PZEM::EventType::EVT_READ_ERROR) {
-      Serial.println("L3 READ_ERROR");
-      Serial.flush();
-      return;
-    }
-    if(eventType == Mycila::PZEM::EventType::EVT_READ_TIMEOUT){
-      Serial.println("L3 READ_TIMEOUT");
-      Serial.flush();
-      return;
-    }
-    if(eventType == Mycila::PZEM::EventType::EVT_READ){
-      Serial.printf("L3 EVT_READ (SUCCESS): %f V, %f A, %f W\n", data.voltage, data.current, data.activePower);
-      Serial.flush();
-      return;
-    }
+  Serial.println(F("Step 8.5: PZEM callbacks DONE"));
   
-    Serial.printf(" - %" PRIu32 "L3 EVT_UNKNOWN: %f V, %f A, %f W\n", millis(), data.voltage, data.current, data.activePower);
-    Serial.flush();
-  });
+  Serial.println(F("Step 9: Starting PZEM async initialization..."));
   
   pzem1->begin(Serial1, RX_pin, TX_pin, 0x01, true);
   pzem2->begin(Serial1, RX_pin, TX_pin, 0x02, true);
@@ -287,5 +241,5 @@ void loop() {
   esp_task_wdt_reset(); // Extra watchdog feed
   wifimanager->wifiAutoReconnect();
   yield();
-  
+  pzemmqttpublisher->Process();
 }

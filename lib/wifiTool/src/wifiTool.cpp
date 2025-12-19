@@ -254,55 +254,7 @@ void WifiTool::handleGetDeviceUsernames(AsyncWebServerRequest *request)
     request->send(200, "application/json", sjw.getJsonString());
 }
 
-void WifiTool::handleSaveSensorInventory(AsyncWebServerRequest *request)
-{
-    SimpleJsonWriter sjw;
-    std::vector<std::pair<String, String>> listA;
-    std::vector<std::pair<String, String> *> listB;
-    if (request->params() > 0)
-    {
-        for (unsigned int i = 0; i < request->args(); i = i + 2)
-        {
-            listA.emplace_back(std::make_pair(String{request->arg(i)},
-                                              String{request->arg(i + 1)}));
-        }
 
-        for (unsigned int i = 0; i < listA.size() - 1; i++)
-        {
-            if (listA.at(i).second == "")
-                continue;
-            boolean found = false;
-            for (unsigned int j = i + 1; j < listA.size(); j++)
-            {
-                if (listA.at(i).second == listA.at(j).second)
-                    found = true;
-            }
-            if (!found)
-                listB.emplace_back(&listA.at(i));
-        }
-        if (listA.size() > 0)
-        {
-            if (listA.at(listA.size() - 1).second != "")
-                listB.emplace_back(&listA.at(listA.size() - 1));
-        }
-    }
-    
-    for (unsigned int i = 0; i < listB.size(); i++)
-    {
-        sjw.addKeyValue(listB.at(i)->first, listB.at(i)->second);
-    }
-    File file = SPIFFS.open(SENSOR_NAMES_JSON, "w");
-    if (!file)
-    {
-        _WIFITOOL_PL(F("Error opening file for writing"));
-        return;
-    }
-    _WIFITOOL_PL(sjw.getJsonString());
-    file.print(sjw.getJsonString());
-    file.flush();
-    file.close();
-    handleRescanWires(request);
-}
 
 void WifiTool::handleSaveCommandFilter(AsyncWebServerRequest *request)
 {
@@ -588,81 +540,6 @@ void WifiTool::handleSaveSecretJson(AsyncWebServerRequest *request)
 
 
 
-void WifiTool::handleRescanWires(AsyncWebServerRequest *request)
-{
-    //rescan done by handleGetUnkonwSensors()
-    request->redirect(F("/wifi_tempinvent.html"));
-}
-
-void WifiTool::handleSaveThingspeakJson(AsyncWebServerRequest *request)
-{
-    SimpleJsonWriter sjw;
-    std::vector<std::pair<String, String>> chidwrapi;
-    std::vector<std::vector<String>> fieldmap;
-
-    for (unsigned int i = 0; i < request->args(); i = i + 10)
-    {
-        if (request->arg(i) != "" && request->arg(i + 1) != "")
-        {
-            chidwrapi.emplace_back(std::make_pair(String{request->arg(i)},
-                                                  String{request->arg(i + 1)}));
-
-            std::vector<String> fi;
-            for (unsigned int n = i + 2; n < i + 2 + 8; n++)
-            {
-                fi.emplace_back(request->arg(n));
-            }
-            fieldmap.emplace_back(fi);
-        }
-    }
-
-
-    for (unsigned int i = 0; i < chidwrapi.size(); i++)
-    {
-        sjw.addKeyValue(chidwrapi.at(i).first, chidwrapi.at(i).second);
-    }
-    _WIFITOOL_PL(sjw.getJsonString());
-
-    File file = SPIFFS.open(TEAMSPEAK_SECRETS_JSON, "w");
-    if (!file)
-    {
-        _WIFITOOL_PL(F("Error opening file for writing"));
-        request->redirect(F("/wifi_thingspeak.html"));
-        return;
-    }
-
-    file.print(sjw.getJsonString());
-    file.flush();
-    file.close();
-
-    sjw.clear();
-
-    for (unsigned int i = 0; i < chidwrapi.size(); i++)
-    {
-
-        for (unsigned int n = 0; n < 8; n++)
-        {
-            sjw.addKeyValue(String(chidwrapi.at(i).first + String("_") + String(n + 1)), fieldmap.at(i).at(n));
-        }
-    }
-
-    _WIFITOOL_PL(sjw.getJsonString());
-
-    file = SPIFFS.open(TEAMSPEAK_FIELDS_JSON, "w");
-    if (!file)
-    {
-        _WIFITOOL_PL(F("Error opening file for writing"));
-        return;
-    }
-
-    file.print(sjw.getJsonString());
-    file.flush();
-    file.close();
-
-    request->redirect(F("/wifi_thingspeak.html"));
-}
-
-
 /**
  * @brief Handle a GET request to /version
  * @details This function responds with a text/plain response containing the
@@ -685,6 +562,12 @@ void WifiTool::handleGetVersion(AsyncWebServerRequest *request)
     request->send(200, "text/plain", "Version:" + getVersion() +"  ( Network:" + WiFi.SSID() + " Strength:" + String(WiFi.RSSI())+" dBm)" + " Uptime:" + uptimeString);
 }
 
+void WifiTool::handleGetCheckPZEM(AsyncWebServerRequest *request)
+{
+   String address = request->arg(F("address"));
+   int addr=address.toInt();
+   //_sh.pzem.setAddress(addr);
+}
 
 /**
  * setUpSoftAP()
@@ -716,22 +599,12 @@ void WifiTool::setUpSoftAP()
     request->send(response);
   });
 
-
-
     _sh.webserver.on("/saveSecret/", HTTP_ANY, [&, this](AsyncWebServerRequest *request)
                { handleSaveSecretJson(request); });
 
-    _sh.webserver.on("/saveTempsens/", HTTP_POST, [&, this](AsyncWebServerRequest *request)
-               { handleSaveSensorInventory(request); });
-
-    _sh.webserver.on("/saveThingspeak/", HTTP_ANY, [&, this](AsyncWebServerRequest *request)
-               { handleSaveThingspeakJson(request); });
 
     _sh.webserver.on("/savemqtt/", HTTP_POST, [&, this](AsyncWebServerRequest *request)
                { handleSaveMqtt(request); });
-
-    _sh.webserver.on("/rescanwires/", HTTP_ANY, [&, this](AsyncWebServerRequest *request)
-               { handleRescanWires(request); });
 
     _sh.webserver.on("/list", HTTP_ANY, [&, this](AsyncWebServerRequest *request)
                { handleFileList(request); });

@@ -226,6 +226,7 @@ namespace Mycila {
       // Returns the number of devices found
       // MYCILA_PZEM_DEFAULT_ADDRESS (0xF8) is also searched for to be able to find PZEM devices that have not been assigned an address.
       size_t search(uint8_t* addresses, const size_t maxCount);
+      bool canRead(uint8_t address);
 
 #ifdef MYCILA_JSON_SUPPORT
       void toJson(const JsonObject& root) const;
@@ -269,7 +270,6 @@ namespace Mycila {
       };
 
     private:
-      bool _canRead(uint8_t address);
       ReadResult _timedRead(uint8_t expectedAddress, size_t expectedLen);
       void _send(uint8_t address, uint8_t cmd, uint16_t rAddr, uint16_t val);
       void _openSerial(const uint8_t rxPin, const uint8_t txPin);
@@ -294,6 +294,6 @@ namespace Mycila {
 #endif
       
       // Serial-specific mutex getter
-      static std::recursive_mutex& getSerialMutex(HardwareSerial* serial);
+      static std::recursive_mutex& _getSerialMutex(HardwareSerial* serial);
   };
 } // namespace Mycila

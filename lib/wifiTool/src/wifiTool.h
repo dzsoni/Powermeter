@@ -75,7 +75,6 @@ private:
   void  handleFileDelete(AsyncWebServerRequest *request);
   void  getWifiScanJson(AsyncWebServerRequest *request);
   void  handleSaveSecretJson(AsyncWebServerRequest *request);
-  void  handleSaveThingspeakJson(AsyncWebServerRequest *request);
   void  handleSaveMqtt(AsyncWebServerRequest* request);
   void  handleGetMqttjson(AsyncWebServerRequest *request);
   int   getRSSIasQuality(int RSSI);
@@ -83,11 +82,10 @@ private:
   void  handleGetDeviceNames(AsyncWebServerRequest *request);
   void  handleGetfilteredCommands(AsyncWebServerRequest *request);
   void  handleGetDeviceUsernames(AsyncWebServerRequest *request);
-  void  handleRescanWires(AsyncWebServerRequest *request);
-  void  handleSaveSensorInventory(AsyncWebServerRequest *request);
   void  handleSaveCommandFilter(AsyncWebServerRequest *request);
   void  handleFileDownload(AsyncWebServerRequest *request);
   void  handleGetVersion(AsyncWebServerRequest *request);
+  void  handleGetCheckPZEM(AsyncWebServerRequest *request);
 };
 
 #endif /* WIFITOOL_H */
