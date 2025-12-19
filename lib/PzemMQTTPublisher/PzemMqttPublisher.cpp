@@ -1,4 +1,4 @@
-#include "pzem_mqtt_publisher.h"
+#include "PzemMqttPublisher.h"
 
 
 PzemMqttPublisher::PzemMqttPublisher(IMQTTMediator *mymqttmediator,std::vector<Mycila::PZEM*>& pzems,String pathtojson,u_int32_t period):
@@ -35,7 +35,7 @@ void PzemMqttPublisher::Process()
 
 void PzemMqttPublisher::sendOnce()
 {
-    sendPeriodicaly(0);//stop sending periodicaly
+    sendPeriodically(0);//stop sending periodicaly
     if(!MedClient::connected())return;
     for (int i = 0; i < _pzems.size(); i++)
     {
@@ -49,7 +49,7 @@ void PzemMqttPublisher::sendOnce()
     
 }
 
-void PzemMqttPublisher::sendPeriodicaly(u_int32_t period)
+void PzemMqttPublisher::sendPeriodically(u_int32_t period)
 {
     _period=period;
 }

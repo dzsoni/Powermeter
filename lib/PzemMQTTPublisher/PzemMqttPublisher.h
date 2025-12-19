@@ -22,7 +22,7 @@ public:
     void Process();
 
     void sendOnce();
-    void sendPeriodicaly(u_int32_t period);
+    void sendPeriodically(u_int32_t period);
     u_int32_t getPeriod(){return _period;};
     
 

@@ -21,7 +21,7 @@
 
 #include <ArduinoJson.h>
 #include <MycilaPZEM.h>
-#include "pzem_mqtt_publisher.h"
+#include "PzemMqttPublisher.h"
 #include "..\lib\wifiTool\include\definitions.h"
 
 #ifdef ARDUINO_ARCH_ESP32
@@ -149,6 +149,31 @@ void setup() {
   mqttcommand->setOnUnsubscribe([&](uint16_t packetid){Serial.println("MQTT_Command:Successful unsubscription.");});
   mqttcommand->setOnDisconnect([&](AsyncMqttClientDisconnectReason reason){Serial.println("MQTT_Command: Disconnected. Reason: "+ String(uint8_t(reason)));});
 
+  tuplecorefactory->addDeviceInitFunction(pzemmqttpublisher,"pzemmqtt");
+  tuplecorefactory->addDeviceInitFunction(mqttcommand,"mqttcommand");
+  tuplecorefactory->addDeviceInitFunction(wifimanager,"wifimanager");
+  tuplecorefactory->addDeviceInitFunction(commandcenter,"commandcenter");
+    
+    
+    device_command_struct devcomstr;
+    SimpleJsonParser sjp;
+    std::vector<std::pair<String, String>> spairs;
+    spairs = sjp.extractKeysandValuesFromFile(MQTTCOMMANDDEVICEIDS_JSON);
+
+    for(unsigned int i = 0; i < tuplecorefactory->numberOfInitFuns(); i++)
+    {
+        devcomstr = tuplecorefactory->invokeNthInitFunction(i);
+        if (i < spairs.size())
+        {
+            if (String(devcomstr.devicetype) == spairs[i].first && spairs[i].second != "")
+            {
+                devcomstr = tuplecorefactory->invokeNthInitFunction(i, spairs[i].second);
+            }
+        }
+        commandcenter->addDevice(devcomstr);
+        commandcenter->filterRepoByFiterFile(devcomstr.devicetype);
+    }
+    tuplecorefactory->shrinkToFitFuncinitvec();
 
   Serial.println(F("Step 3: DONE."));
   Serial.flush();
