@@ -25,8 +25,6 @@ public:
     void sendPeriodically(u_int32_t period);
     u_int32_t getPeriod(){return _period;};
     
-
-    void onMessageCB(char *topic, char *payload, AsyncMqttClientMessageProperties properties, size_t len, size_t index, size_t total);
     void onConnectCB(bool sessionpresent);
     // call from loop
 };

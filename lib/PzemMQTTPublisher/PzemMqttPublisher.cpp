@@ -25,7 +25,7 @@ void PzemMqttPublisher::Process()
                 _pzems[i]->toJson(root);
                 String json;
                 serializeJson(root, json);
-                MedClient::publish(String("L" + String(i)).c_str(), 0, false, json.c_str(), json.length());
+                MedClient::publish(String("Power/pzem/L"+String(i+1)).c_str(), 0, false, json.c_str(), json.length());
                 yield();
             }
             _lastpublish = millis();
@@ -44,7 +44,7 @@ void PzemMqttPublisher::sendOnce()
         _pzems[i]->toJson(root);
         String json;
         serializeJson(root, json);
-        MedClient::publish(String("L"+String(i)).c_str(),0,false,json.c_str(),json.length());
+        MedClient::publish(String("Power/pzem/L"+String(i+1)).c_str(),0,false,json.c_str(),json.length());
     }
     
 }
