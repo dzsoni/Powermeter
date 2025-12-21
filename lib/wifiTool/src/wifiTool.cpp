@@ -630,7 +630,7 @@ void WifiTool::handleSavePZEMaddress(AsyncWebServerRequest *request)
 {
     if (request->params() == 0) {
         _WIFITOOL_PL(F("No PZEM address to change."));
-        request->redirect("/wifi_PZEM.html");
+        request->send(200, "text/plain", "No changes.");
         return;
     }
     
@@ -675,7 +675,7 @@ void WifiTool::handleSavePZEMaddress(AsyncWebServerRequest *request)
             }
         }
     } 
-    request->redirect("/wifi_PZEM.html");
+    request->send(200, "text/plain", "Saved.");
 }
 
 /**

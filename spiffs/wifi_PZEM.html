@@ -266,6 +266,25 @@
         }
       }
 
+      // Save button click handler
+      function saveAddresses() {
+        var form = document.querySelector('form');
+        var formData = new FormData(form);
+        
+        var xhttp = new XMLHttpRequest();
+        xhttp.onreadystatechange = function() {
+          if (this.readyState == 4) {
+            if (this.status == 200) {
+              showScanningStatus("Saved.");
+            } else {
+              showScanningStatus("Error saving: " + this.status);
+            }
+          }
+        };
+        xhttp.open("POST", "/savePZEMaddress/", true);
+        xhttp.send(formData);
+      }
+
       // Initialize on page load
       document.addEventListener("DOMContentLoaded", function () {
         
@@ -287,9 +306,9 @@
        <div id="containervf">
          <div id="value-field" class="value-field"></div>
        </div>
-      <input type="button" id="btnrescan" value="Rescan" onclick="rescanhButtonClick()"/>
+      <input type="button" id="btnrescan" value="Scan" onclick="rescanhButtonClick()"/>
       <input type="button" id="btnstop" value="Stop" onclick="stopScan()"/>
-      <input type="submit" value="Save & Rescan" />
+      <input type="button" value="Save" onclick="saveAddresses()" />
     </form>
     <div id="scan-status" style="padding: 10px; margin: 10px 0; border: 1px solid #ddd; background-color: #f9f9f9;">
       <div id="status-message" style="font-weight: bold;">Ready to scan...</div>
