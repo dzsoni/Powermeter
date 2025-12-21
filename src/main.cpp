@@ -58,7 +58,7 @@ Mycila::PZEM* pzem1= nullptr; // 0x01
 Mycila::PZEM* pzem2= nullptr; // 0x02
 Mycila::PZEM* pzem3= nullptr; // 0x03
 
-std::vector<Mycila::PZEM*> pzems;
+std::vector<pzem_serial_settings> pzems;
 
 
 
@@ -91,7 +91,7 @@ void setup() {
   pzem2 = new Mycila::PZEM();
   pzem3 = new Mycila::PZEM();
 
-  pzems = { pzem1, pzem2, pzem3 };
+  pzems = {{"Serial1",pzem1},{"Serial1",pzem2},{"Serial1", pzem3} };
 
   pzemmqttpublisher = new PzemMqttPublisher(mqttmediator, pzems, MQTT_SETTINGS_JSON,1);
 

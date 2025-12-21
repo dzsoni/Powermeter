@@ -38,7 +38,7 @@
 
 #include "definitions.h"
 
-//#define  DEBUG_WIFITOOL 
+#define  DEBUG_WIFITOOL 
 
 #ifdef DEBUG_WIFITOOL
 #define _WIFITOOL_PP(a) Serial.print(a);
@@ -86,6 +86,8 @@ private:
   void  handleFileDownload(AsyncWebServerRequest *request);
   void  handleGetVersion(AsyncWebServerRequest *request);
   void  handleGetCheckPZEM(AsyncWebServerRequest *request);
+  void  handleGetUsedSerials(AsyncWebServerRequest *request);
+  void  handleSavePZEMaddress(AsyncWebServerRequest *request);
 };
 
 #endif /* WIFITOOL_H */

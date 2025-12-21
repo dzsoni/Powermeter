@@ -15,8 +15,7 @@
 #include "ESPAsyncWebServer.h"
 
 
-//Forward declared classes
-class ControlLogic;
+
 
 struct mqtt_tempsens_settings
 {
@@ -56,7 +55,7 @@ struct struct_hardwares:public MedClient
                      IMQTTMediator* mqttMediator_for_sh,
                      MQTTMediator& mqttmediator,
                      WifiManager& wifimanager,
-                     std::vector<Mycila::PZEM*>& pzems):
+                     std::vector<pzem_serial_settings>& pzems):
                     webserver(webserver),
                     tuplefactory(tuplefactory),
                     comcenter(comcenter),
@@ -73,7 +72,7 @@ struct struct_hardwares:public MedClient
     MQTTMediator& mqttmediator;
     WifiManager& wifimanager;
     mqtt_settings_struct mqttstruct;
-    std::vector<Mycila::PZEM*>& pzems;
+    std::vector<pzem_serial_settings>& pzems;
 };
 
 #endif /* STRUCT_HARDWARES_H */

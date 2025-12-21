@@ -659,6 +659,7 @@ Mycila::PZEM::ReadResult Mycila::PZEM::_timedRead(uint8_t expectedAddress, size_
 }
 
 bool Mycila::PZEM::canRead(uint8_t address) {
+  std::lock_guard<std::recursive_mutex> lock(_getSerialMutex(_serial));
 #ifdef MYCILA_PZEM_DEBUG
   Serial.printf("[PZEM] _canRead(0x%02X)\n", address);
 #endif

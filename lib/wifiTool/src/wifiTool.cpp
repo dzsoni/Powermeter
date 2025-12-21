@@ -318,7 +318,8 @@ void WifiTool::handleSaveCommandFilter(AsyncWebServerRequest *request)
     file = SPIFFS.open(MQTTCOMMANDDEVICEIDS_JSON , "w");
     if (!file)
     {
-        _WIFITOOL_PL(F("Error opening file for writing") + String(MQTTCOMMANDDEVICEIDS_JSON));
+        Serial.print(F("Error opening file for writing: "));
+        Serial.println(MQTTCOMMANDDEVICEIDS_JSON);
         request->redirect("/wifi_command.html");
         return;
     }
@@ -564,9 +565,117 @@ void WifiTool::handleGetVersion(AsyncWebServerRequest *request)
 
 void WifiTool::handleGetCheckPZEM(AsyncWebServerRequest *request)
 {
-   String address = request->arg(F("address"));
-   int addr=address.toInt();
-   //_sh.pzem.setAddress(addr);
+    String address = request->arg(F("address"));
+    int addr = address.toInt();
+    
+    if (addr < 1 || addr > 248) {
+        request->send(400, "text/plain", "false");
+        return;
+    }
+    
+    // Check if any PZEM instance can read from this address
+    bool canRead = false;
+    for (size_t i = 0; i < _sh.pzems.size(); i++) {
+        if (_sh.pzems[i].pzem != nullptr && _sh.pzems[i].pzem->isEnabled()) {
+            if (_sh.pzems[i].pzem->canRead(addr)) {
+                canRead = true;
+                break;
+            }
+        }
+    }
+    
+    request->send(200, "text/plain", canRead ? "true" : "false");
+}
+
+void WifiTool::handleGetUsedSerials(AsyncWebServerRequest *request)
+{
+    String json = "[";
+    std::vector<String> usedKeys;
+    
+    // Iterate through all PZEM serial settings in _sh.pzems vector
+    for (size_t i = 0; i < _sh.pzems.size(); i++) {
+        if (_sh.pzems[i].pzem != nullptr && _sh.pzems[i].pzem->isEnabled()) {
+            int rx = _sh.pzems[i].pzem->getRXPin();
+            int tx = _sh.pzems[i].pzem->getTXPin();
+            String key = _sh.pzems[i].serialname + ":" + String(rx) + ":" + String(tx);
+            
+            bool found = false;
+            for(const String& k : usedKeys) {
+                if(k == key) {
+                    found = true;
+                    break;
+                }
+            }
+            
+            if(!found) {
+                usedKeys.push_back(key);
+                if (json.length() > 1) {
+                    json += ",";
+                }
+                json += "{";
+                json += "\"serialName\":\"" + _sh.pzems[i].serialname + "\",";
+                json += "\"rxPin\":" + String(rx) + ",";
+                json += "\"txPin\":" + String(tx);
+                json += "}";
+            }
+        }
+    }
+    
+    json += "]";
+    _WIFITOOL_PL("getusedserials: " + json);
+    request->send(200, "application/json", json);
+}
+
+void WifiTool::handleSavePZEMaddress(AsyncWebServerRequest *request)
+{
+    if (request->params() == 0) {
+        _WIFITOOL_PL(F("No PZEM address to change."));
+        request->redirect("/wifi_PZEM.html");
+        return;
+    }
+    
+    // Parse the form data
+    // Format: s0=Serial1, a0=old address, n0=new address
+    std::vector<std::tuple<String, int, int>> pzemDevices;
+    
+    for (unsigned int i = 0; i < request->params(); i++) {
+        String paramName = request->argName(i);
+        
+        // Look for serial parameters (s0, s1, s2, etc.)
+        if (paramName.startsWith("s")) {
+            String indexStr = paramName.substring(1);
+            int index = indexStr.toInt();
+            
+            String serialName = request->arg(i);
+            String addressParam = "a" + indexStr;
+            String newAddressParam = "n" + indexStr;
+            
+            if (request->hasArg(addressParam) && request->hasArg(newAddressParam)) {
+                int address = request->arg(addressParam).toInt();
+                String newaddress = request->arg(newAddressParam);
+                int newAddr = newaddress.toInt();
+                
+                if (address >= 1 && address <= 248 && newAddr >= 1 && newAddr <= 248) {
+                    pzemDevices.emplace_back(std::make_tuple(serialName, address, newAddr));
+                    _WIFITOOL_PL(String("PZEM Device: ") + serialName + " Addr:" + String(address) + " New Addr:" + newaddress);
+
+                    // Find a PZEM instance on this serial to send the command
+                    for (size_t k = 0; k < _sh.pzems.size(); k++) {
+                        if (_sh.pzems[k].serialname == serialName && _sh.pzems[k].pzem != nullptr && _sh.pzems[k].pzem->isEnabled()) {
+                            bool success = _sh.pzems[k].pzem->setDeviceAddress(address, newAddr);
+                            if (success) {
+                                _WIFITOOL_PL(String("Address change successful for ") + serialName);
+                            } else {
+                                _WIFITOOL_PL(String("Address change failed for ") + serialName);
+                            }
+                            break; // Only need one instance to send the command
+                        }
+                    }
+                }
+            }
+        }
+    } 
+    request->redirect("/wifi_PZEM.html");
 }
 
 /**
@@ -645,6 +754,15 @@ void WifiTool::setUpSoftAP()
 
     _sh.webserver.on("/getversion", HTTP_GET, [&, this](AsyncWebServerRequest *request)
                { handleGetVersion(request); });
+
+    _sh.webserver.on("/canread", HTTP_GET, [&, this](AsyncWebServerRequest *request)
+               { handleGetCheckPZEM(request); });
+
+    _sh.webserver.on("/getusedserials", HTTP_GET, [&, this](AsyncWebServerRequest *request)
+               { handleGetUsedSerials(request); });
+
+    _sh.webserver.on("/savePZEMaddress/", HTTP_POST, [&, this](AsyncWebServerRequest *request)
+               { handleSavePZEMaddress(request); });
 
     _sh.webserver.onNotFound([](AsyncWebServerRequest *request)
                        {

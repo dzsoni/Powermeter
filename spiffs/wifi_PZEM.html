@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <title>PZEM Device Search</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta http-equiv="Cache-Control" content="no-cache"/>
+    <meta http-equiv="Pragma" content="no-cache" />
+    <link href="pure-all.min.css" rel="stylesheet" type="text/css" />
+    <script>
+      var hardwareSerials = [];
+      var isScanning = false;
+
+      // Clear all items from value field
+      function clearValueField() {
+        document.getElementById("value-field").innerHTML = "";
+      }
+
+      // Show scanning status message
+      function showScanningStatus(message) {
+        var statusDiv = document.getElementById("status-message");
+        if (statusDiv) {
+          statusDiv.textContent = message;
+        }
+        console.log("Status: " + message);
+      }
+
+      // Update scan progress
+      function updateScanProgress(serialName, currentAddress, maxAddress) {
+        var percent = Math.floor((currentAddress / maxAddress) * 100);
+        showScanningStatus("Scanning " + serialName + ": " + percent + "% (" + currentAddress + "/" + maxAddress + ")");
+      }
+
+      // Scan all hardware serials for PZEM devices
+      function scanAllSerials(serials) {
+        var currentSerial = 0;
+        
+        function scanNextSerial() {
+          if (!isScanning) return;
+          if (currentSerial >= serials.length) {
+            isScanning = false;
+            var deviceCount = document.getElementById("value-field").children.length;
+            showScanningStatus("Scan complete! Found " + deviceCount + " PZEM device(s).");
+            document.getElementById("btnrescan").disabled = false;
+            return;
+          }
+          
+          var serial = serials[currentSerial];
+          scanPZEMAddresses(serial, function() {
+            currentSerial++;
+            scanNextSerial();
+          });
+        }
+        
+        scanNextSerial();
+      }
+
+      // Scan PZEM addresses 1-248 for a specific hardware serial
+      function scanPZEMAddresses(serial, callback) {
+        var address = 1;
+        var maxAddress = 248;
+        
+        function scanNextAddress() {
+          if (!isScanning) return;
+          if (address > maxAddress) {
+            callback();
+            return;
+          }
+          
+          updateScanProgress(serial.serialName || serial, address, maxAddress);
+          
+          var xhttp = new XMLHttpRequest();
+          xhttp.timeout = 5000; // 5 second timeout
+          
+          xhttp.onreadystatechange = function() {
+            if (this.readyState == 4) {
+              if (this.status == 200) {
+                try {
+                  var response = this.responseText.trim();
+                  // Handle both boolean and JSON responses
+                  var canRead = false;
+                  if (response === "true" || response === "1") {
+                    canRead = true;
+                  } else {
+                    try {
+                      var jsonResponse = JSON.parse(response);
+                      canRead = jsonResponse === true || jsonResponse.canRead === true;
+                    } catch (e) {
+                      canRead = false;
+                    }
+                  }
+                  
+                  if (canRead) {
+                    appenditemtovf(serial.serialName || serial, address, "");
+                  }
+                } catch (e) {
+                  console.error("Error parsing response for address " + address + ": " + e);
+                }
+              }
+              address++;
+              // Add delay to prevent overwhelming the server
+              setTimeout(scanNextAddress, 50);
+            }
+          };
+          
+          xhttp.ontimeout = function() {
+            console.warn("Timeout checking address " + address);
+            address++;
+            setTimeout(scanNextAddress, 50);
+          };
+          
+          xhttp.onerror = function() {
+            console.error("Error checking address " + address);
+            address++;
+            setTimeout(scanNextAddress, 50);
+          };
+          
+          xhttp.open("GET", "/canread?address=" + address, true);
+          xhttp.send();
+        }
+        
+        scanNextAddress();
+      }
+
+      // Main function to start fetching hardware serials and initiate scan
+      function fillValueField() {
+        if (isScanning) {
+          showScanningStatus("Scan already in progress...");
+          return;
+        }
+        
+        isScanning = true;
+        clearValueField();
+        showScanningStatus("Fetching hardware serials...");
+        document.getElementById("btnrescan").disabled = true;
+        
+        var xhttp = new XMLHttpRequest();
+        xhttp.timeout = 10000; // 10 second timeout
+        
+        xhttp.onreadystatechange = function() {
+          if (this.readyState == 4) {
+            if (this.status == 200) {
+              try {
+                hardwareSerials = JSON.parse(this.responseText);
+                if (hardwareSerials.length === 0) {
+                  showScanningStatus("No hardware serials configured!");
+                  isScanning = false;
+                  document.getElementById("btnrescan").disabled = false;
+                  return;
+                }
+                showScanningStatus("Found " + hardwareSerials.length + " hardware serial(s). Starting scan...");
+                scanAllSerials(hardwareSerials);
+              } catch (e) {
+                showScanningStatus("Error parsing hardware serial data: " + e.message);
+                isScanning = false;
+                document.getElementById("btnrescan").disabled = false;
+              }
+            } else {
+              showScanningStatus("Error fetching hardware serials (Status: " + this.status + ")");
+              isScanning = false;
+              document.getElementById("btnrescan").disabled = false;
+            }
+          }
+        };
+        
+        xhttp.ontimeout = function() {
+          showScanningStatus("Timeout fetching hardware serials");
+          isScanning = false;
+          document.getElementById("btnrescan").disabled = false;
+        };
+        
+        xhttp.onerror = function() {
+          showScanningStatus("Network error fetching hardware serials");
+          isScanning = false;
+          document.getElementById("btnrescan").disabled = false;
+        };
+        
+        xhttp.open("GET", "/getusedserials", true);
+        xhttp.send();
+      }
+
+      // Append a PZEM device item to the value field
+      function appenditemtovf(serialName, address, newaddress) {
+        let i = document.getElementById("value-field").children.length;
+        let div = document.createElement("div");
+        div.setAttribute("class", "item");
+        div.setAttribute("id", "i" + i);
+
+        // Hidden field for serial name
+        let inpSerial = document.createElement("input");
+        inpSerial.setAttribute("type", "hidden");
+        inpSerial.setAttribute("id", "s" + i);
+        inpSerial.setAttribute("name", "s" + i);
+        inpSerial.setAttribute("value", serialName);
+        div.appendChild(inpSerial);
+
+        // Hidden field for address
+        let inpAddr = document.createElement("input");
+        inpAddr.setAttribute("type", "hidden");
+        inpAddr.setAttribute("id", "a" + i);
+        inpAddr.setAttribute("name", "a" + i);
+        inpAddr.setAttribute("value", address);
+        div.appendChild(inpAddr);
+
+        // Status indicator
+        let roitStatus = document.createElement("div");
+        roitStatus.setAttribute("class", "rowitem");
+        let statusDiv = document.createElement("div");
+        statusDiv.setAttribute("id", "status" + i);
+        statusDiv.innerHTML = '&#x1F7E2;'; // Green circle
+        roitStatus.appendChild(statusDiv);
+        div.appendChild(roitStatus);
+
+        // Serial Name Label
+        let roitSerial = document.createElement("div");
+        roitSerial.setAttribute("class", "rowitem");
+        let serialLabel = document.createElement("label");
+        serialLabel.textContent = serialName;
+        roitSerial.appendChild(serialLabel);
+        div.appendChild(roitSerial);
+
+        // Address Label
+        let roitAddr = document.createElement("div");
+        roitAddr.setAttribute("class", "rowitem");
+        let addrLabel = document.createElement("label");
+        addrLabel.setAttribute("for", "n" + i);
+        addrLabel.textContent = "Addr: " + address;
+        roitAddr.appendChild(addrLabel);
+        div.appendChild(roitAddr);
+
+        // Name Input Field
+        let roitName = document.createElement("div");
+        roitName.setAttribute("class", "rowitem");
+        let nameInput = document.createElement("input");
+        nameInput.setAttribute("type", "text");
+        nameInput.setAttribute("id", "n" + i);
+        nameInput.setAttribute("name", "n" + i);
+        nameInput.setAttribute("maxlength", "32");
+        nameInput.setAttribute("size", "10");
+        nameInput.setAttribute("value", newaddress);
+        nameInput.setAttribute("placeholder", "New address");
+        roitName.appendChild(nameInput);
+        
+        div.appendChild(roitName);
+
+        document.getElementById("value-field").appendChild(div);
+      }
+
+      // Rescan button click handler
+      function rescanhButtonClick() {
+        if (isScanning) {
+          showScanningStatus("Scan already in progress...");
+          return;
+        }
+        clearValueField();
+        fillValueField();
+      }
+
+      // Stop button click handler
+      function stopScan() {
+        if (isScanning) {
+          isScanning = false;
+          showScanningStatus("Scan stopped by user.");
+          document.getElementById("btnrescan").disabled = false;
+        }
+      }
+
+      // Initialize on page load
+      document.addEventListener("DOMContentLoaded", function () {
+        
+        fillValueField();
+      });
+    </script>
+  </head>
+
+  <body>
+    <div class="header">
+      <div class="home"><img  alt = "Home"  src = "home.svg"  onClick="location.href='wifi_index.html'"/></div>
+    <h1>PZEM Search</h1>
+    </div>
+
+    
+
+    <form action="/savePZEMaddress/" method="POST">
+
+       <div id="containervf">
+         <div id="value-field" class="value-field"></div>
+       </div>
+      <input type="button" id="btnrescan" value="Rescan" onclick="rescanhButtonClick()"/>
+      <input type="button" id="btnstop" value="Stop" onclick="stopScan()"/>
+      <input type="submit" value="Save & Rescan" />
+    </form>
+    <div id="scan-status" style="padding: 10px; margin: 10px 0; border: 1px solid #ddd; background-color: #f9f9f9;">
+      <div id="status-message" style="font-weight: bold;">Ready to scan...</div>
+    </div>
+  </body>
+</html>

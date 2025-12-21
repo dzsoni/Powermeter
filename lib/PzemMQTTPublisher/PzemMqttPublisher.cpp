@@ -1,7 +1,7 @@
 #include "PzemMqttPublisher.h"
 
 
-PzemMqttPublisher::PzemMqttPublisher(IMQTTMediator *mymqttmediator,std::vector<Mycila::PZEM*>& pzems,String pathtojson,u_int32_t period):
+PzemMqttPublisher::PzemMqttPublisher(IMQTTMediator *mymqttmediator,std::vector<pzem_serial_settings>& pzems,String pathtojson,u_int32_t period):
                                      _pzems(pzems),
                                      _pathtojson(pathtojson),
                                      _period(period)
@@ -22,7 +22,7 @@ void PzemMqttPublisher::Process()
             {
                 JsonDocument jdoc;
                 JsonObject root = jdoc.to<JsonObject>();
-                _pzems[i]->toJson(root);
+                _pzems[i].pzem->toJson(root);
                 String json;
                 serializeJson(root, json);
                 MedClient::publish(String("Power/pzem/L"+String(i+1)).c_str(), 0, false, json.c_str(), json.length());
@@ -41,7 +41,7 @@ void PzemMqttPublisher::sendOnce()
     {
         JsonDocument jdoc;
         JsonObject root = jdoc.to<JsonObject>();      
-        _pzems[i]->toJson(root);
+        _pzems[i].pzem->toJson(root);
         String json;
         serializeJson(root, json);
         MedClient::publish(String("Power/pzem/L"+String(i+1)).c_str(),0,false,json.c_str(),json.length());
