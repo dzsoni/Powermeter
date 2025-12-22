@@ -573,17 +573,29 @@ void WifiTool::handleGetCheckPZEM(AsyncWebServerRequest *request)
         return;
     }
     
-    // Check if any PZEM instance can read from this address
+    // Get serial name, RX, and TX pins if provided
+    String serialName = request->arg(F("serial"));
+    String rxPinStr = request->arg(F("rx"));
+    String txPinStr = request->arg(F("tx"));
+    
     bool canRead = false;
-    for (size_t i = 0; i < _sh.pzems.size(); i++) {
-        if (_sh.pzems[i].pzem != nullptr && _sh.pzems[i].pzem->isEnabled()) {
-            if (_sh.pzems[i].pzem->canRead(addr)) {
-                canRead = true;
-                break;
+    
+    // If serial name and pins are provided, find the specific PZEM instance
+    if (serialName != "" && rxPinStr != "" && txPinStr != "") {
+        int rxPin = rxPinStr.toInt();
+        int txPin = txPinStr.toInt();
+        
+        for (size_t i = 0; i < _sh.pzems.size(); i++) {
+            if (_sh.pzems[i].pzem != nullptr && _sh.pzems[i].pzem->isEnabled()) {
+                if (_sh.pzems[i].serialname == serialName &&
+                    _sh.pzems[i].pzem->getRXPin() == rxPin &&
+                    _sh.pzems[i].pzem->getTXPin() == txPin) {
+                    canRead = _sh.pzems[i].pzem->canRead(addr);
+                    break;
+                }
             }
         }
-    }
-    
+    }  
     request->send(200, "text/plain", canRead ? "true" : "false");
 }
 
@@ -664,9 +676,9 @@ void WifiTool::handleSavePZEMaddress(AsyncWebServerRequest *request)
                         if (_sh.pzems[k].serialname == serialName && _sh.pzems[k].pzem != nullptr && _sh.pzems[k].pzem->isEnabled()) {
                             bool success = _sh.pzems[k].pzem->setDeviceAddress(address, newAddr);
                             if (success) {
-                                _WIFITOOL_PL(String("Address change successful for ") + serialName);
+                                _WIFITOOL_PL(String("Address change successful for ") + serialName + " Addr:" + String(address) + " New Addr:" + newaddress);
                             } else {
-                                _WIFITOOL_PL(String("Address change failed for ") + serialName);
+                                _WIFITOOL_PL(String("Address change failed for ") + serialName + " Addr:" + String(address) + " New Addr:" + newaddress);
                             }
                             break; // Only need one instance to send the command
                         }

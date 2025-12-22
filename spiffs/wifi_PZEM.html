@@ -27,9 +27,10 @@
       }
 
       // Update scan progress
-      function updateScanProgress(serialName, currentAddress, maxAddress) {
+      function updateScanProgress(serialName, currentAddress, maxAddress, rxPin, txPin) {
         var percent = Math.floor((currentAddress / maxAddress) * 100);
-        showScanningStatus("Scanning " + serialName + ": " + percent + "% (" + currentAddress + "/" + maxAddress + ")");
+        var pinInfo = (rxPin !== undefined && txPin !== undefined) ? " [rx" + rxPin + ",tx" + txPin + "]" : "";
+        showScanningStatus("Scanning " + serialName + pinInfo + ": " + percent + "% (" + currentAddress + "/" + maxAddress + ")");
       }
 
       // Scan all hardware serials for PZEM devices
@@ -68,7 +69,7 @@
             return;
           }
           
-          updateScanProgress(serial.serialName || serial, address, maxAddress);
+          updateScanProgress(serial.serialName || serial, address, maxAddress, serial.rxPin, serial.txPin);
           
           var xhttp = new XMLHttpRequest();
           xhttp.timeout = 5000; // 5 second timeout
@@ -92,7 +93,7 @@
                   }
                   
                   if (canRead) {
-                    appenditemtovf(serial.serialName || serial, address, "");
+                    appenditemtovf(serial.serialName || serial, address, "", serial.rxPin, serial.txPin);
                   }
                 } catch (e) {
                   console.error("Error parsing response for address " + address + ": " + e);
@@ -116,7 +117,13 @@
             setTimeout(scanNextAddress, 50);
           };
           
-          xhttp.open("GET", "/canread?address=" + address, true);
+          var url = "/canread?address=" + address;
+          if (serial.serialName) {
+            url += "&serial=" + encodeURIComponent(serial.serialName);
+            url += "&rx=" + serial.rxPin;
+            url += "&tx=" + serial.txPin;
+          }
+          xhttp.open("GET", url, true);
           xhttp.send();
         }
         
@@ -181,7 +188,7 @@
       }
 
       // Append a PZEM device item to the value field
-      function appenditemtovf(serialName, address, newaddress) {
+      function appenditemtovf(serialName, address, newaddress, rxPin, txPin) {
         let i = document.getElementById("value-field").children.length;
         let div = document.createElement("div");
         div.setAttribute("class", "item");
@@ -216,7 +223,7 @@
         let roitSerial = document.createElement("div");
         roitSerial.setAttribute("class", "rowitem");
         let serialLabel = document.createElement("label");
-        serialLabel.textContent = serialName;
+        serialLabel.textContent = serialName + (rxPin ? " [rx" + rxPin + ",tx" + txPin + "]" : "");
         roitSerial.appendChild(serialLabel);
         div.appendChild(roitSerial);
 
