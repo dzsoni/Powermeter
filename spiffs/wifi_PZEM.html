@@ -11,6 +11,7 @@
     <script>
       var hardwareSerials = [];
       var isScanning = false;
+      var knownPzems = {}; // Store known PZEM devices from pzem_address.json
 
       // Clear all items from value field
       function clearValueField() {
@@ -93,7 +94,21 @@
                   }
                   
                   if (canRead) {
-                    appenditemtovf(serial.serialName || serial, address, "", serial.rxPin, serial.txPin);
+                    // Look up device name from known PZEMs
+                    var deviceName = "";
+                    for (var idx in knownPzems) {
+                      var pzem = knownPzems[idx];
+                      // Match by serial name, RX pin, TX pin, and current address
+                      if (pzem.ser == serial.serialName &&
+                          parseInt(pzem.rx) == serial.rxPin &&
+                          parseInt(pzem.tx) == serial.txPin &&
+                          (parseInt(pzem.addr) == address || parseInt(pzem.newaddr) == address)) {
+                        deviceName = pzem.name || "";
+                        console.log("Found known PZEM:", deviceName, "for", serial.serialName, address);
+                        break;
+                      }
+                    }
+                    appenditemtovf(serial.serialName || serial, address, "", serial.rxPin, serial.txPin, deviceName);
                   }
                 } catch (e) {
                   console.error("Error parsing response for address " + address + ": " + e);
@@ -130,6 +145,56 @@
         scanNextAddress();
       }
 
+      // Load known PZEM devices from pzem_address.json
+      function loadKnownPzems(callback) {
+        var xhttp = new XMLHttpRequest();
+        xhttp.timeout = 5000;
+        
+        xhttp.onreadystatechange = function() {
+          if (this.readyState == 4) {
+            if (this.status == 200) {
+              try {
+                var obj = JSON.parse(this.responseText);
+                var keys = Object.keys(obj);
+                
+                // Parse the JSON to create a lookup map
+                // Key format: "serialName:rxPin:txPin:address" -> deviceName
+                for (var i = 0; i < keys.length; i++) {
+                  var key = keys[i];
+                  var parts = key.split(":");
+                  if (parts.length >= 2) {
+                    var index = parts[0];
+                    var field = parts[1];
+                    
+                    if (!knownPzems[index]) {
+                      knownPzems[index] = {};
+                    }
+                    knownPzems[index][field] = obj[key];
+                  }
+                }
+                console.log("Loaded known PZEMs:", knownPzems);
+              } catch (e) {
+                console.log("No existing PZEM data or parse error:", e);
+              }
+            }
+            callback();
+          }
+        };
+        
+        xhttp.ontimeout = function() {
+          console.log("Timeout loading known PZEMs");
+          callback();
+        };
+        
+        xhttp.onerror = function() {
+          console.log("Error loading known PZEMs");
+          callback();
+        };
+        
+        xhttp.open("GET", "/pzem_address.json", true);
+        xhttp.send();
+      }
+
       // Main function to start fetching hardware serials and initiate scan
       function fillValueField() {
         if (isScanning) {
@@ -139,56 +204,61 @@
         
         isScanning = true;
         clearValueField();
-        showScanningStatus("Fetching hardware serials...");
+        showScanningStatus("Loading known PZEM devices...");
         document.getElementById("btnrescan").disabled = true;
         
-        var xhttp = new XMLHttpRequest();
-        xhttp.timeout = 10000; // 10 second timeout
-        
-        xhttp.onreadystatechange = function() {
-          if (this.readyState == 4) {
-            if (this.status == 200) {
-              try {
-                hardwareSerials = JSON.parse(this.responseText);
-                if (hardwareSerials.length === 0) {
-                  showScanningStatus("No hardware serials configured!");
+        // First load known PZEMs, then fetch hardware serials
+        loadKnownPzems(function() {
+          showScanningStatus("Fetching hardware serials...");
+          
+          var xhttp = new XMLHttpRequest();
+          xhttp.timeout = 10000; // 10 second timeout
+          
+          xhttp.onreadystatechange = function() {
+            if (this.readyState == 4) {
+              if (this.status == 200) {
+                try {
+                  hardwareSerials = JSON.parse(this.responseText);
+                  if (hardwareSerials.length === 0) {
+                    showScanningStatus("No hardware serials configured!");
+                    isScanning = false;
+                    document.getElementById("btnrescan").disabled = false;
+                    return;
+                  }
+                  showScanningStatus("Found " + hardwareSerials.length + " hardware serial(s). Starting scan...");
+                  scanAllSerials(hardwareSerials);
+                } catch (e) {
+                  showScanningStatus("Error parsing hardware serial data: " + e.message);
                   isScanning = false;
                   document.getElementById("btnrescan").disabled = false;
-                  return;
                 }
-                showScanningStatus("Found " + hardwareSerials.length + " hardware serial(s). Starting scan...");
-                scanAllSerials(hardwareSerials);
-              } catch (e) {
-                showScanningStatus("Error parsing hardware serial data: " + e.message);
+              } else {
+                showScanningStatus("Error fetching hardware serials (Status: " + this.status + ")");
                 isScanning = false;
                 document.getElementById("btnrescan").disabled = false;
               }
-            } else {
-              showScanningStatus("Error fetching hardware serials (Status: " + this.status + ")");
-              isScanning = false;
-              document.getElementById("btnrescan").disabled = false;
             }
-          }
-        };
-        
-        xhttp.ontimeout = function() {
-          showScanningStatus("Timeout fetching hardware serials");
-          isScanning = false;
-          document.getElementById("btnrescan").disabled = false;
-        };
-        
-        xhttp.onerror = function() {
-          showScanningStatus("Network error fetching hardware serials");
-          isScanning = false;
-          document.getElementById("btnrescan").disabled = false;
-        };
-        
-        xhttp.open("GET", "/getusedserials", true);
-        xhttp.send();
+          };
+          
+          xhttp.ontimeout = function() {
+            showScanningStatus("Timeout fetching hardware serials");
+            isScanning = false;
+            document.getElementById("btnrescan").disabled = false;
+          };
+          
+          xhttp.onerror = function() {
+            showScanningStatus("Network error fetching hardware serials");
+            isScanning = false;
+            document.getElementById("btnrescan").disabled = false;
+          };
+          
+          xhttp.open("GET", "/getusedserials", true);
+          xhttp.send();
+        });
       }
 
       // Append a PZEM device item to the value field
-      function appenditemtovf(serialName, address, newaddress, rxPin, txPin) {
+      function appenditemtovf(serialName, address, newaddress, rxPin, txPin, deviceName) {
         let i = document.getElementById("value-field").children.length;
         let div = document.createElement("div");
         div.setAttribute("class", "item");
@@ -209,6 +279,22 @@
         inpAddr.setAttribute("name", "a" + i);
         inpAddr.setAttribute("value", address);
         div.appendChild(inpAddr);
+
+        // Hidden field for RX pin
+        let inpRx = document.createElement("input");
+        inpRx.setAttribute("type", "hidden");
+        inpRx.setAttribute("id", "rx" + i);
+        inpRx.setAttribute("name", "rx" + i);
+        inpRx.setAttribute("value", rxPin || "");
+        div.appendChild(inpRx);
+
+        // Hidden field for TX pin
+        let inpTx = document.createElement("input");
+        inpTx.setAttribute("type", "hidden");
+        inpTx.setAttribute("id", "tx" + i);
+        inpTx.setAttribute("name", "tx" + i);
+        inpTx.setAttribute("value", txPin || "");
+        div.appendChild(inpTx);
 
         // Status indicator
         let roitStatus = document.createElement("div");
@@ -236,20 +322,33 @@
         roitAddr.appendChild(addrLabel);
         div.appendChild(roitAddr);
 
-        // Name Input Field
-        let roitName = document.createElement("div");
-        roitName.setAttribute("class", "rowitem");
-        let nameInput = document.createElement("input");
-        nameInput.setAttribute("type", "text");
-        nameInput.setAttribute("id", "n" + i);
-        nameInput.setAttribute("name", "n" + i);
-        nameInput.setAttribute("maxlength", "32");
-        nameInput.setAttribute("size", "10");
-        nameInput.setAttribute("value", newaddress);
-        nameInput.setAttribute("placeholder", "New address");
-        roitName.appendChild(nameInput);
-        
-        div.appendChild(roitName);
+        // Device Name Input Field
+        let roitDevName = document.createElement("div");
+        roitDevName.setAttribute("class", "rowitem");
+        let devNameInput = document.createElement("input");
+        devNameInput.setAttribute("type", "text");
+        devNameInput.setAttribute("id", "name" + i);
+        devNameInput.setAttribute("name", "name" + i);
+        devNameInput.setAttribute("maxlength", "32");
+        devNameInput.setAttribute("size", "12");
+        devNameInput.setAttribute("value", deviceName || "");
+        devNameInput.setAttribute("placeholder", "Device name");
+        roitDevName.appendChild(devNameInput);
+        div.appendChild(roitDevName);
+
+        // New Address Input Field
+        let roitNewAddr = document.createElement("div");
+        roitNewAddr.setAttribute("class", "rowitem");
+        let newAddrInput = document.createElement("input");
+        newAddrInput.setAttribute("type", "text");
+        newAddrInput.setAttribute("id", "n" + i);
+        newAddrInput.setAttribute("name", "n" + i);
+        newAddrInput.setAttribute("maxlength", "3");
+        newAddrInput.setAttribute("size", "12");
+        newAddrInput.setAttribute("value", newaddress);
+        newAddrInput.setAttribute("placeholder", "New addr");
+        roitNewAddr.appendChild(newAddrInput);
+        div.appendChild(roitNewAddr);
 
         document.getElementById("value-field").appendChild(div);
       }
@@ -274,7 +373,7 @@
       }
 
       // Save button click handler
-      function saveAddresses() {
+      saveAddresses = function saveAddresses() {
         var form = document.querySelector('form');
         var formData = new FormData(form);
         

@@ -38,7 +38,7 @@
 
 #include "definitions.h"
 
-//#define  DEBUG_WIFITOOL 
+#define  DEBUG_WIFITOOL 
 
 #ifdef DEBUG_WIFITOOL
 #define _WIFITOOL_PP(a) Serial.print(a);

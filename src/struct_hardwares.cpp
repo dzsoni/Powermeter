@@ -9,7 +9,7 @@ void mqtt_settings_struct::loadMQTTsettings()
   // Check if SPIFFS is mounted and file exists before trying to load
   if (!SPIFFS.exists(MQTT_SETTINGS_JSON)) {
     Serial.println(F("MQTT settings file not found, using defaults"));
-    mqtt_Tempsens_Vector.clear();
+    mqtt_Pzem_Vector.clear();
     // Set some reasonable defaults
     mqttServer = "";
     mqttPort = 1883;
@@ -26,7 +26,7 @@ void mqtt_settings_struct::loadMQTTsettings()
   }
   
   SimpleJsonParser sjp;
-  mqtt_Tempsens_Vector.clear();
+  mqtt_Pzem_Vector.clear();
   std::vector<std::pair<String, String>> vec;
   vec = sjp.extractKeysandValuesFromFile(MQTT_SETTINGS_JSON);
   for (std::pair e : vec)
@@ -110,7 +110,7 @@ void mqtt_settings_struct::loadMQTTsettings()
                 int y=x.first.substring(0,x.first.indexOf(":qos")).toInt();
                 if(y==index)
                 {
-                  mqtt_Tempsens_Vector.emplace_back((mqtt_tempsens_settings){e.second,i.second,std::stoul(x.second.c_str())});
+                  mqtt_Pzem_Vector.emplace_back((mqtt_pzem_settings){e.second,i.second,std::stoul(x.second.c_str())});
                   goto leave;
                 }
               }
@@ -142,11 +142,11 @@ void mqtt_settings_struct::saveMQTTsettings()
   sjw.addKeyValue(F("WILLQOS"),String(mqttQoS));
   sjw.addKeyValue(F("WILLTEXT"),mqttWillText);
 
-  for (unsigned int i = 0; i < mqtt_Tempsens_Vector.size(); i++)
+  for (unsigned int i = 0; i < mqtt_Pzem_Vector.size(); i++)
   {
-    sjw.addKeyValue(String(i) + ":topic", mqtt_Tempsens_Vector.at(i).topic);
-    sjw.addKeyValue(String(i) + ":sens", mqtt_Tempsens_Vector.at(i).sensName);
-    sjw.addKeyValue(String(i) + ":qos", String(mqtt_Tempsens_Vector.at(i).QoS));
+    sjw.addKeyValue(String(i) + ":topic", mqtt_Pzem_Vector.at(i).topic);
+    sjw.addKeyValue(String(i) + ":sens", mqtt_Pzem_Vector.at(i).pzemName);
+    sjw.addKeyValue(String(i) + ":qos", String(mqtt_Pzem_Vector.at(i).QoS));
   }
   // Check if SPIFFS is available before trying to save
   if (!SPIFFS.begin(false)) {

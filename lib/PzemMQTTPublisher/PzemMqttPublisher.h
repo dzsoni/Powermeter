@@ -1,5 +1,5 @@
-#ifndef PZEM_MQTT_PUBLISHER_H
-#define PZEM_MQTT_PUBLISHER_H
+#ifndef PZEMMQTTPUBLISHER_H
+#define PZEMMQTTPUBLISHER_H
 
 
 #include <Medclient.h>
@@ -7,21 +7,31 @@
 #include <MycilaPZEM.h>
 #include "ArduinoJson.h"
 
+// Forward declaration to avoid circular dependency
+struct struct_hardwares;
+
 struct pzem_serial_settings
 {
     String serialname;
+    String name;
     Mycila::PZEM* pzem;
+};
+struct pzem_serial_settings_struct
+{
+    std::vector<pzem_serial_settings> settings;
+    void loadPzemSerialSettings();
 };
 
 class PzemMqttPublisher : public MedClient
 {
 private:
-    std::vector<pzem_serial_settings>& _pzems;
+    struct_hardwares*            _sh;
+    pzem_serial_settings_struct& _settings;
     u_int32_t                   _period; //if 0 then no publish
     u_int32_t                   _lastpublish=0;
     String                      _pathtojson;
 public:
-    PzemMqttPublisher(IMQTTMediator *mymqttmediator,std::vector<pzem_serial_settings>& pzems,String pathtojson,u_int32_t period=0);
+    PzemMqttPublisher(IMQTTMediator *mymqttmediator,pzem_serial_settings_struct& settings,String pathtojson,struct_hardwares* sh,u_int32_t period=0);
     ~PzemMqttPublisher(){};
     void Process();
 
@@ -33,4 +43,4 @@ public:
     // call from loop
 };
 
-#endif /* PZEM_MQTT_PUBLISHER_H */
+#endif /* PZEMMQTTPUBLISHER_H */

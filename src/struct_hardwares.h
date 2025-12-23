@@ -17,11 +17,11 @@
 
 
 
-struct mqtt_tempsens_settings
+struct mqtt_pzem_settings
 {
     String topic;
-    String sensName;
-    unsigned int QoS;   
+    String pzemName;
+    unsigned int QoS;
 };
 struct mqtt_settings_struct
 {
@@ -37,7 +37,7 @@ struct mqtt_settings_struct
     uint8_t mqttQoS=0;
     bool    mqttRetain=0;
     bool    mqttCleanSession=1;
-    std::vector<struct mqtt_tempsens_settings> mqtt_Tempsens_Vector;
+    std::vector<struct mqtt_pzem_settings> mqtt_Pzem_Vector;
     
     void loadMQTTsettings();
     void saveMQTTsettings();
@@ -55,14 +55,14 @@ struct struct_hardwares:public MedClient
                      IMQTTMediator* mqttMediator_for_sh,
                      MQTTMediator& mqttmediator,
                      WifiManager& wifimanager,
-                     std::vector<pzem_serial_settings>& pzems):
+                     pzem_serial_settings_struct& pzemserstruct):
                     webserver(webserver),
                     tuplefactory(tuplefactory),
                     comcenter(comcenter),
                     mqttCommand(mqttCommand),
                     mqttmediator(mqttmediator),
                     wifimanager(wifimanager),
-                    pzems(pzems)
+                    pzemserstruct(pzemserstruct)
                     {MedClient::setMQTTMediator(mqttMediator_for_sh);};    
     
     AsyncWebServer& webserver;   
@@ -72,7 +72,7 @@ struct struct_hardwares:public MedClient
     MQTTMediator& mqttmediator;
     WifiManager& wifimanager;
     mqtt_settings_struct mqttstruct;
-    std::vector<pzem_serial_settings>& pzems;
+    pzem_serial_settings_struct& pzemserstruct;
 };
 
 #endif /* STRUCT_HARDWARES_H */

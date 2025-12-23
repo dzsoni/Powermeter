@@ -58,9 +58,7 @@ Mycila::PZEM* pzem1= nullptr; // 0x01
 Mycila::PZEM* pzem2= nullptr; // 0x02
 Mycila::PZEM* pzem3= nullptr; // 0x03
 
-std::vector<pzem_serial_settings> pzems;
-
-
+pzem_serial_settings_struct pzemsersettingsstruct;
 
 // Global Task pointers - initialized in setup()
 Task* task1 = nullptr;
@@ -91,12 +89,10 @@ void setup() {
   pzem2 = new Mycila::PZEM();
   pzem3 = new Mycila::PZEM();
 
-  pzems = {{"Serial1",pzem1},{"Serial1",pzem2},{"Serial1", pzem3} };
+  
+  sh = new struct_hardwares(*webserver, *tuplecorefactory, *commandcenter, *mqttcommand, mqttmediator, *mqttmediator, *wifimanager,pzemsersettingsstruct );
+  pzemmqttpublisher = new PzemMqttPublisher(mqttmediator, pzemsersettingsstruct, MQTT_SETTINGS_JSON, sh, 1);
 
-  pzemmqttpublisher = new PzemMqttPublisher(mqttmediator, pzems, MQTT_SETTINGS_JSON,1);
-
-
-  sh = new struct_hardwares(*webserver, *tuplecorefactory, *commandcenter, *mqttcommand, mqttmediator, *mqttmediator, *wifimanager, pzems);
   wifiTool = new WifiTool(*sh);
   
   
@@ -122,6 +118,7 @@ void setup() {
   Serial.flush();
 
   sh->mqttstruct.loadMQTTsettings();
+  sh->pzemserstruct.loadPzemSerialSettings();
     
   mqttmediator->setServer(sh->mqttstruct.mqttServer.c_str(),sh->mqttstruct.mqttPort);
   //mqttmediator.setServer(IPAddress ip, uint16_t port);

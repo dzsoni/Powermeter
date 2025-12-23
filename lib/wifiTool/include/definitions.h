@@ -1,5 +1,6 @@
 
 
+#define PZEM_ADDRESS_JSON           "/pzem_address.json"
 #define MQTT_SETTINGS_JSON          "/mqtt.json"
 #define MQTTCOMMAND_SETTINGS_JSON   "/mqttcommand.json"
 #define MQTTCOMMANDDEVICEIDS_JSON   "/mqtt_device_ids.json"

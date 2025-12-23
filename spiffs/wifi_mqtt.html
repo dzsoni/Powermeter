@@ -8,7 +8,7 @@
 <meta http-equiv="Pragma" content="no-cache" />
 <link href="pure-all.min.css" rel="stylesheet" type="text/css" />
 <script>
-var sensornames;
+var pzemnames;
 
 function setInputFilter(textbox, inputFilter) {
     ["input", "keydown", "keyup", "mousedown", "mouseup", "select", "contextmenu", "drop"].forEach(function(event) {
@@ -33,7 +33,16 @@ function setInputFilter(textbox, inputFilter) {
       if (this.readyState == 4 && this.status == 200) {
 
         let obj = JSON.parse(this.responseText);
-        sensornames = Object.values(obj);
+        // Extract PZEM names from pzem_address.json
+        pzemnames = [];
+        let keys = Object.keys(obj);
+        for (let i = 0; i < keys.length; i++) {
+          if (keys[i].indexOf(":name") > 0) {
+            if (obj[keys[i]] !== "") {
+              pzemnames.push(obj[keys[i]]);
+            }
+          }
+        }
 
         let xhttp2 = new XMLHttpRequest();
         xhttp2.onreadystatechange = function () {
@@ -112,7 +121,7 @@ function setInputFilter(textbox, inputFilter) {
         xhttp2.send();
       };
     }
-    xhttp.open("GET", "sensnames.json", true);
+    xhttp.open("GET", "pzem_address.json", true);
     xhttp.send();
 
     let xhttp3 = new XMLHttpRequest();
@@ -144,7 +153,7 @@ function setInputFilter(textbox, inputFilter) {
 
   }
 
-function appenditemtovf(topic, sensname, qos, rowid) {
+function appenditemtovf(topic, pzemname, qos, rowid) {
     let div = document.createElement("div");
     div.setAttribute("class", "item");
     div.setAttribute("id", "i" + rowid);
@@ -163,7 +172,7 @@ function appenditemtovf(topic, sensname, qos, rowid) {
     let inp1 = document.createElement("input");
     inp1.setAttribute("class", "rowitem");
     inp1.setAttribute("maxlength", "32");
-    inp1.setAttribute("size", "10");
+    inp1.setAttribute("size", "25");
     inp1.setAttribute("type", "text");
     inp1.setAttribute("id", "t" + rowid);
     inp1.setAttribute("name", "t" + rowid);
@@ -179,21 +188,21 @@ function appenditemtovf(topic, sensname, qos, rowid) {
     sel.setAttribute("class", "tempsel");
     let opt = document.createElement("option");
     opt.setAttribute("value", "");
-    let txt4 = document.createTextNode("--Choose a sensor--");
+    let txt4 = document.createTextNode("--Choose a PZEM--");
     opt.appendChild(txt4);
     sel.appendChild(opt);
 
-    for (let n = 0; n < sensornames.length; n++) {
-        if (sensornames[n] != "") {
+    for (let n = 0; n < pzemnames.length; n++) {
+        if (pzemnames[n] != "") {
             let opt2 = document.createElement("option");
-            opt2.setAttribute("value", sensornames[n]);
-            let v = document.createTextNode(sensornames[n]);
+            opt2.setAttribute("value", pzemnames[n]);
+            let v = document.createTextNode(pzemnames[n]);
             opt2.appendChild(v);
             sel.appendChild(opt2);
         }
     }
     for (let n = 0; n < sel.length; n++) {
-        if (sel.options[n].value == sensname) {
+        if (sel.options[n].value == pzemname) {
             sel.options[n].selected = true;
         }
     }

@@ -340,15 +340,15 @@ void WifiTool::handleSaveCommandFilter(AsyncWebServerRequest *request)
 
 /***
  * @brief Save mqttserver address, port, username, password, willtopic, keep alive, QoS, retain, will message,
- *  temperature sensor names with topic name to mqtt.json
- * 
- * @param request 
+ *  PZEM device names with topic name to mqtt.json
+ *
+ * @param request
  */
 void WifiTool::handleSaveMqtt(AsyncWebServerRequest *request)
 {
     std::vector<std::pair<String, String>> listA;
     std::vector<std::pair<String, String> *> listtopics;
-    std::vector<std::pair<String, String> *> listsensors;
+    std::vector<std::pair<String, String> *> listpzems;
     std::vector<std::pair<String, String> *> listqos;
 
     if (request->params() > 0)
@@ -464,9 +464,9 @@ void WifiTool::handleSaveMqtt(AsyncWebServerRequest *request)
                 continue;
             }
 
-            if (listA.at(i).first.substring(0, 1) == "s") // sensor
-            {                                             // select server settings to listsensors
-                listsensors.emplace_back(&listA.at(i));
+            if (listA.at(i).first.substring(0, 1) == "s") // pzem name
+            {                                             // select server settings to listpzems
+                listpzems.emplace_back(&listA.at(i));
                 continue;
             }
 
@@ -498,21 +498,21 @@ void WifiTool::handleSaveMqtt(AsyncWebServerRequest *request)
         _sh.mqttmediator.setKeepAlive(_sh.mqttstruct.mqttKeepAlive);
         _sh.mqttmediator.setWill(_sh.mqttstruct.mqttWillTopic.c_str(), _sh.mqttstruct.mqttQoS, _sh.mqttstruct.mqttRetain, _sh.mqttstruct.mqttWillText.c_str(), _sh.mqttstruct.mqttWillText.length());
         
-        _sh.mqttstruct.mqtt_Tempsens_Vector.clear();
+        _sh.mqttstruct.mqtt_Pzem_Vector.clear();
 
         for (unsigned int i = 0; i < listtopics.size(); i++)
         {
-            if (listsensors[i]->second != "" && listtopics[i]->second != "" && listqos[i]->second !="")
+            if (listpzems[i]->second != "" && listtopics[i]->second != "" && listqos[i]->second !="")
             {
                 if(listqos[i]->second.toInt()>2)listqos[i]->second="2";
                 if(listqos[i]->second.toInt()<0)listqos[i]->second="0";
-                _sh.mqttstruct.mqtt_Tempsens_Vector.emplace_back((struct mqtt_tempsens_settings)
+                _sh.mqttstruct.mqtt_Pzem_Vector.emplace_back((struct mqtt_pzem_settings)
                                                         {listtopics[i]->second,
-                                                         listsensors[i]->second,
+                                                         listpzems[i]->second,
                                                         (unsigned int) listqos[i]->second.toInt()});
             }
         }
-        _sh.mqttstruct.mqtt_Tempsens_Vector.shrink_to_fit();
+        _sh.mqttstruct.mqtt_Pzem_Vector.shrink_to_fit();
         _sh.mqttstruct.saveMQTTsettings();
         _sh.mqttCommand.saveMQTTCommandsettings();
         request->redirect(F("/wifi_mqtt.html"));
@@ -585,17 +585,17 @@ void WifiTool::handleGetCheckPZEM(AsyncWebServerRequest *request)
         int rxPin = rxPinStr.toInt();
         int txPin = txPinStr.toInt();
         
-        for (size_t i = 0; i < _sh.pzems.size(); i++) {
-            if (_sh.pzems[i].pzem != nullptr && _sh.pzems[i].pzem->isEnabled()) {
-                if (_sh.pzems[i].serialname == serialName &&
-                    _sh.pzems[i].pzem->getRXPin() == rxPin &&
-                    _sh.pzems[i].pzem->getTXPin() == txPin) {
-                    canRead = _sh.pzems[i].pzem->canRead(addr);
+        for (size_t i = 0; i < _sh.pzemserstruct.settings.size(); i++) {
+            if (_sh.pzemserstruct.settings[i].pzem != nullptr && _sh.pzemserstruct.settings[i].pzem->isEnabled()) {
+                if (_sh.pzemserstruct.settings[i].serialname == serialName &&
+                    _sh.pzemserstruct.settings[i].pzem->getRXPin() == rxPin &&
+                    _sh.pzemserstruct.settings[i].pzem->getTXPin() == txPin) {
+                    canRead = _sh.pzemserstruct.settings[i].pzem->canRead(addr);
                     break;
                 }
             }
         }
-    }  
+    }
     request->send(200, "text/plain", canRead ? "true" : "false");
 }
 
@@ -604,12 +604,12 @@ void WifiTool::handleGetUsedSerials(AsyncWebServerRequest *request)
     String json = "[";
     std::vector<String> usedKeys;
     
-    // Iterate through all PZEM serial settings in _sh.pzems vector
-    for (size_t i = 0; i < _sh.pzems.size(); i++) {
-        if (_sh.pzems[i].pzem != nullptr && _sh.pzems[i].pzem->isEnabled()) {
-            int rx = _sh.pzems[i].pzem->getRXPin();
-            int tx = _sh.pzems[i].pzem->getTXPin();
-            String key = _sh.pzems[i].serialname + ":" + String(rx) + ":" + String(tx);
+    // Iterate through all PZEM serial settings in _sh.pzemserstruct.settings vector
+    for (size_t i = 0; i < _sh.pzemserstruct.settings.size(); i++) {
+        if (_sh.pzemserstruct.settings[i].pzem != nullptr && _sh.pzemserstruct.settings[i].pzem->isEnabled()) {
+            int rx = _sh.pzemserstruct.settings[i].pzem->getRXPin();
+            int tx = _sh.pzemserstruct.settings[i].pzem->getTXPin();
+            String key = _sh.pzemserstruct.settings[i].serialname + ":" + String(rx) + ":" + String(tx);
             
             bool found = false;
             for(const String& k : usedKeys) {
@@ -625,7 +625,7 @@ void WifiTool::handleGetUsedSerials(AsyncWebServerRequest *request)
                     json += ",";
                 }
                 json += "{";
-                json += "\"serialName\":\"" + _sh.pzems[i].serialname + "\",";
+                json += "\"serialName\":\"" + _sh.pzemserstruct.settings[i].serialname + "\",";
                 json += "\"rxPin\":" + String(rx) + ",";
                 json += "\"txPin\":" + String(tx);
                 json += "}";
@@ -647,8 +647,16 @@ void WifiTool::handleSavePZEMaddress(AsyncWebServerRequest *request)
     }
     
     // Parse the form data
-    // Format: s0=Serial1, a0=old address, n0=new address
-    std::vector<std::tuple<String, int, int>> pzemDevices;
+    // Format: s0=Serial1, a0=old address, n0=new address, rx0=rxPin, tx0=txPin, name0=deviceName
+    struct PZEMDevice {
+        String serialName;
+        int rxPin;
+        int txPin;
+        int address;
+        int newAddress;
+        String deviceName;
+    };
+    std::vector<PZEMDevice> pzemDevices;
     
     for (unsigned int i = 0; i < request->params(); i++) {
         String paramName = request->argName(i);
@@ -661,21 +669,40 @@ void WifiTool::handleSavePZEMaddress(AsyncWebServerRequest *request)
             String serialName = request->arg(i);
             String addressParam = "a" + indexStr;
             String newAddressParam = "n" + indexStr;
+            String rxParam = "rx" + indexStr;
+            String txParam = "tx" + indexStr;
+            String nameParam = "name" + indexStr;
             
             if (request->hasArg(addressParam) && request->hasArg(newAddressParam)) {
                 int address = request->arg(addressParam).toInt();
                 String newaddress = request->arg(newAddressParam);
                 int newAddr = newaddress.toInt();
+                if(newaddress == "")
+                {
+                    newAddr = address;
+                    newaddress = String(address);
+                }
+                
+                int rxPin = request->hasArg(rxParam) ? request->arg(rxParam).toInt() : -1;
+                int txPin = request->hasArg(txParam) ? request->arg(txParam).toInt() : -1;
+                String deviceName = request->hasArg(nameParam) ? request->arg(nameParam) : "";
                 
                 if (address >= 1 && address <= 248 && newAddr >= 1 && newAddr <= 248) {
-                    pzemDevices.emplace_back(std::make_tuple(serialName, address, newAddr));
-                    _WIFITOOL_PL(String("PZEM Device: ") + serialName + " Addr:" + String(address) + " New Addr:" + newaddress);
-
+                    
                     // Find a PZEM instance on this serial to send the command
-                    for (size_t k = 0; k < _sh.pzems.size(); k++) {
-                        if (_sh.pzems[k].serialname == serialName && _sh.pzems[k].pzem != nullptr && _sh.pzems[k].pzem->isEnabled()) {
-                            bool success = _sh.pzems[k].pzem->setDeviceAddress(address, newAddr);
+                    for (size_t k = 0; k < _sh.pzemserstruct.settings.size(); k++) {
+                        if (_sh.pzemserstruct.settings[k].serialname == serialName && _sh.pzemserstruct.settings[k].pzem != nullptr) {
+                            Serial.println("Address change for " + serialName + " Addr:" + String(address) + " New Addr:" + newaddress);
+                            bool success = _sh.pzemserstruct.settings[k].pzem->setDeviceAddress(address, newAddr);
                             if (success) {
+                                PZEMDevice dev;
+                                dev.serialName = serialName;
+                                dev.rxPin = rxPin;
+                                dev.txPin = txPin;
+                                dev.address = address;
+                                dev.newAddress = newAddr;
+                                dev.deviceName = deviceName;
+                                pzemDevices.push_back(dev);
                                 _WIFITOOL_PL(String("Address change successful for ") + serialName + " Addr:" + String(address) + " New Addr:" + newaddress);
                             } else {
                                 _WIFITOOL_PL(String("Address change failed for ") + serialName + " Addr:" + String(address) + " New Addr:" + newaddress);
@@ -686,8 +713,34 @@ void WifiTool::handleSavePZEMaddress(AsyncWebServerRequest *request)
                 }
             }
         }
-    } 
+    }
+    
+    SimpleJsonWriter sjw;
+    
+    uint32_t count=0;
+    for(const PZEMDevice& dev : pzemDevices)
+    {
+        sjw.addKeyValue(String(count) + ":ser", dev.serialName);
+        sjw.addKeyValue(String(count) + ":rx", String(dev.rxPin));
+        sjw.addKeyValue(String(count) + ":tx", String(dev.txPin));
+        sjw.addKeyValue(String(count) + ":addr", String(dev.newAddress));
+        sjw.addKeyValue(String(count) + ":name", dev.deviceName);
+        count++;
+    }
+    
+    File file = SPIFFS.open(PZEM_ADDRESS_JSON, "w");
+    if (!file) {
+        _WIFITOOL_PL(F("Error opening file for writing."));
+        request->send(500, "text/plain", "Error opening file for writing.");
+        return;
+    }
+    
+    file.print(sjw.getJsonString());
+    file.flush();
+    file.close();
+    _WIFITOOL_PL(sjw.getJsonString());
     request->send(200, "text/plain", "Saved.");
+    _sh.pzemserstruct.loadPzemSerialSettings();
 }
 
 /**
