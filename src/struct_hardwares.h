@@ -15,8 +15,6 @@
 #include "ESPAsyncWebServer.h"
 
 
-
-
 struct mqtt_pzem_settings
 {
     String topic;
@@ -40,7 +38,7 @@ struct mqtt_settings_struct
     std::vector<struct mqtt_pzem_settings> mqtt_Pzem_Vector;
     
     void loadMQTTsettings();
-    void saveMQTTsettings();
+    void saveMQTTsettings(u_int32_t period = 0);//period for periodic publishing
 };
 
 

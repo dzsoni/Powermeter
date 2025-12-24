@@ -125,7 +125,7 @@ void mqtt_settings_struct::loadMQTTsettings()
   }
 }
 
-void mqtt_settings_struct::saveMQTTsettings()
+void mqtt_settings_struct::saveMQTTsettings(u_int32_t period)
 {
   SimpleJsonWriter sjw;
   
@@ -141,6 +141,7 @@ void mqtt_settings_struct::saveMQTTsettings()
   sjw.addKeyValue(F("WILLTOPIC"),mqttWillTopic);
   sjw.addKeyValue(F("WILLQOS"),String(mqttQoS));
   sjw.addKeyValue(F("WILLTEXT"),mqttWillText);
+  sjw.addKeyValue(F("PERIOD"),String(period));
 
   for (unsigned int i = 0; i < mqtt_Pzem_Vector.size(); i++)
   {

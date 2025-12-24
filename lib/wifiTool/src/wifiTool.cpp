@@ -458,6 +458,12 @@ void WifiTool::handleSaveMqtt(AsyncWebServerRequest *request)
                 continue;
             }
 
+            if(listA.at(i).first == F("PERIOD"))
+            {
+                _sh.pzemserstruct.period = (u_int32_t)strtoul(listA[i].second.c_str(), NULL, 10);
+                continue;
+            }
+
             if (listA.at(i).first.substring(0, 1) == "t") // will topic
             {                                             // select server settings to listtopics
                 listtopics.emplace_back(&listA.at(i));
@@ -513,7 +519,7 @@ void WifiTool::handleSaveMqtt(AsyncWebServerRequest *request)
             }
         }
         _sh.mqttstruct.mqtt_Pzem_Vector.shrink_to_fit();
-        _sh.mqttstruct.saveMQTTsettings();
+        _sh.mqttstruct.saveMQTTsettings(_sh.pzemserstruct.period);
         _sh.mqttCommand.saveMQTTCommandsettings();
         request->redirect(F("/wifi_mqtt.html"));
         _sh.mqttmediator.connect();
@@ -740,7 +746,6 @@ void WifiTool::handleSavePZEMaddress(AsyncWebServerRequest *request)
     file.close();
     _WIFITOOL_PL(sjw.getJsonString());
     request->send(200, "text/plain", "Saved.");
-    _sh.pzemserstruct.loadPzemSerialSettings();
 }
 
 /**

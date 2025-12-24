@@ -89,9 +89,7 @@ void setup() {
   pzem2 = new Mycila::PZEM();
   pzem3 = new Mycila::PZEM();
 
-  
   sh = new struct_hardwares(*webserver, *tuplecorefactory, *commandcenter, *mqttcommand, mqttmediator, *mqttmediator, *wifimanager,pzemsersettingsstruct );
-  pzemmqttpublisher = new PzemMqttPublisher(mqttmediator, pzemsersettingsstruct, MQTT_SETTINGS_JSON, sh, 1);
 
   wifiTool = new WifiTool(*sh);
   
@@ -117,8 +115,16 @@ void setup() {
   Serial.println(F("Step 3: Loading MQTT settings..."));
   Serial.flush();
 
+
+  
+  pzemsersettingsstruct.settings.emplace_back(pzem_serial_settings{"Serial1","",pzem1});
+  pzemsersettingsstruct.settings.emplace_back(pzem_serial_settings{"Serial1","",pzem2});
+  pzemsersettingsstruct.settings.emplace_back(pzem_serial_settings{"Serial1","",pzem3});
+  
+
+  pzemmqttpublisher = new PzemMqttPublisher(mqttmediator, pzemsersettingsstruct, PZEM_ADDRESS_JSON, sh);
   sh->mqttstruct.loadMQTTsettings();
-  sh->pzemserstruct.loadPzemSerialSettings();
+  
     
   mqttmediator->setServer(sh->mqttstruct.mqttServer.c_str(),sh->mqttstruct.mqttPort);
   //mqttmediator.setServer(IPAddress ip, uint16_t port);

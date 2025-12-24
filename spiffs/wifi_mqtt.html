@@ -98,6 +98,10 @@ function setInputFilter(textbox, inputFilter) {
                 document.getElementById('WILLTEXT').value = values[i];
                 continue;
               }
+              if (keys[i] == "PERIOD") {
+                document.getElementById('PERIOD').value = values[i];
+                continue;
+              }
               if (keys[i].indexOf(":topic") > 0) {
                 let a = keys[i].substring(0, keys[i].indexOf(":topic"));
                 labelout: {
@@ -117,7 +121,7 @@ function setInputFilter(textbox, inputFilter) {
             }
           };
         }
-        xhttp2.open("GET", "mqttsettings.json", true);
+        xhttp2.open("GET", "mqtt.json", true);
         xhttp2.send();
       };
     }
@@ -407,6 +411,14 @@ document.addEventListener("DOMContentLoaded", function () {
   </div>
   <div class="contA">
     <h3> MQTT topics for publishing power values</h3>
+    <div class="contB">
+      <div class="contC">
+        <label for="PERIOD">Period:</label>
+      </div>
+      <div class="contC">
+        <input type="text" id="PERIOD" name="PERIOD" maxlength="10" size="10">
+      </div>
+    </div>
     <div id="containervf">
       <div id="value-field" class="value-field"></div>
     </div>
