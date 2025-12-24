@@ -156,7 +156,7 @@ void pzem_serial_settings_struct::loadPzemSerialSettings(String pathtojson)
     std::vector<std::pair<String, String>> vec;
     vec = sjp.extractKeysandValuesFromFile(pathtojson);
     
-    Serial.printf("Loaded %d key-value pairs from JSON\n", vec.size());
+    //Serial.printf("Loaded %d key-value pairs from JSON\n", vec.size());
     
     // Update existing settings entries by index
     // Format: "0:name" -> "L1", "1:name" -> "L2", etc.
@@ -169,7 +169,7 @@ void pzem_serial_settings_struct::loadPzemSerialSettings(String pathtojson)
             int index = e.first.substring(0, colonPos).toInt();
             String field = e.first.substring(colonPos + 1);
             
-            Serial.printf("Processing: key='%s', index=%d, field='%s', value='%s'\n", e.first.c_str(), index, field.c_str(), e.second.c_str());
+            //Serial.printf("Processing: key='%s', index=%d, field='%s', value='%s'\n", e.first.c_str(), index, field.c_str(), e.second.c_str());
             
             // Only update if index is within bounds
             if (index >= 0 && index < settings.size())
@@ -177,7 +177,7 @@ void pzem_serial_settings_struct::loadPzemSerialSettings(String pathtojson)
                 if (field == "name")
                 {
                     settings[index].name = e.second;
-                    Serial.printf("Set settings[%d].name =  '%s'\n", index, e.second.c_str());
+                    //Serial.printf("Set settings[%d].name =  '%s'\n", index, e.second.c_str());
                 }
                 else if (field == "ser")
                 {
@@ -185,14 +185,14 @@ void pzem_serial_settings_struct::loadPzemSerialSettings(String pathtojson)
                     if (settings[index].serialname == "" || settings[index].serialname == e.second)
                     {
                         settings[index].serialname = e.second;
-                        Serial.printf("Set settings[%d].serialname = '%s'\n", index, e.second.c_str());
+                        //Serial.printf("Set settings[%d].serialname = '%s'\n", index, e.second.c_str());
                     }
                 }
                 
             }
         }
     }
-    
+    /*
     // Display final settings
     Serial.println("Final PZEM settings after load:");
     for (size_t i = 0; i < settings.size(); i++)
@@ -201,7 +201,7 @@ void pzem_serial_settings_struct::loadPzemSerialSettings(String pathtojson)
                     i, settings[i].serialname.c_str(), settings[i].name.c_str(),
                     (settings[i].pzem != nullptr) ? "OK" : "NULL");
     }
-    
+    */
     // Load period from MQTT settings JSON
     if (SPIFFS.exists(MQTT_SETTINGS_JSON)) {
         std::vector<std::pair<String, String>> mqttVec;
