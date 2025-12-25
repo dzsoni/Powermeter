@@ -156,7 +156,14 @@ void pzem_serial_settings_struct::loadPzemSerialSettings(String pathtojson)
     std::vector<std::pair<String, String>> vec;
     vec = sjp.extractKeysandValuesFromFile(pathtojson);
     
-    //Serial.printf("Loaded %d key-value pairs from JSON\n", vec.size());
+    // Only process if JSON file has valid data
+    if (vec.size() == 0) {
+        Serial.println(F("Empty JSON file, keeping existing settings"));
+        return;
+    }
+    
+    // DON'T clear - update in place to preserve PZEM pointers from main.cpp!
+    // settings.clear(); // This was the bug causing settings to be lost!
     
     // Update existing settings entries by index
     // Format: "0:name" -> "L1", "1:name" -> "L2", etc.
@@ -168,8 +175,6 @@ void pzem_serial_settings_struct::loadPzemSerialSettings(String pathtojson)
         {
             int index = e.first.substring(0, colonPos).toInt();
             String field = e.first.substring(colonPos + 1);
-            
-            //Serial.printf("Processing: key='%s', index=%d, field='%s', value='%s'\n", e.first.c_str(), index, field.c_str(), e.second.c_str());
             
             // Only update if index is within bounds
             if (index >= 0 && index < settings.size())
