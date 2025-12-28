@@ -56,7 +56,7 @@ build_flags = -D NO_NEED_XXX_COLLECTFUN
 #include "MycilaPZEM_collectFun.h"
 #endif
 
-#ifndef No_NEED_PZEMMQTTPUBLISHER_COLLECTFUN
+#ifndef NO_NEED_PZEMMQTTPUBLISHER_COLLECTFUN
 #include "Pzem_mqtt_publisher_collectFun.h"
 #endif
 
