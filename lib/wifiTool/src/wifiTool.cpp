@@ -646,15 +646,17 @@ void WifiTool::handleGetUsedSerials(AsyncWebServerRequest *request)
 
 void WifiTool::handleSavePZEMaddress(AsyncWebServerRequest *request)
 {
-    if (request->params() == 0) {
+    if (request->params() == 0)
+    {
         _WIFITOOL_PL(F("No PZEM address to change."));
         request->send(200, "text/plain", "No changes.");
         return;
     }
-    
+
     // Parse the form data
     // Format: s0=Serial1, a0=old address, n0=new address, rx0=rxPin, tx0=txPin, name0=deviceName
-    struct PZEMDevice {
+    struct PZEMDevice
+    {
         String serialName;
         int rxPin;
         int txPin;
@@ -663,64 +665,82 @@ void WifiTool::handleSavePZEMaddress(AsyncWebServerRequest *request)
         String deviceName;
     };
     std::vector<PZEMDevice> pzemDevices;
-    
-    for (unsigned int i = 0; i < request->params(); i++) {
+
+    for (unsigned int i = 0; i < request->params(); i++)
+    {
         String paramName = request->argName(i);
-        
+
         // Look for serial parameters (s0, s1, s2, etc.)
-        if (paramName.startsWith("s")) {
+        if (paramName.startsWith("s"))
+        {
             String indexStr = paramName.substring(1);
             int index = indexStr.toInt();
-            
+
             String serialName = request->arg(i);
             String addressParam = "a" + indexStr;
             String newAddressParam = "n" + indexStr;
             String rxParam = "rx" + indexStr;
             String txParam = "tx" + indexStr;
             String nameParam = "name" + indexStr;
-            
-            if (request->hasArg(addressParam) && request->hasArg(newAddressParam)) {
+
+            if (request->hasArg(addressParam) && request->hasArg(newAddressParam))
+            {
                 int address = request->arg(addressParam).toInt();
                 String newaddress = request->arg(newAddressParam);
                 int newAddr = newaddress.toInt();
-                if(newaddress == "")
+                if (newaddress == "")
                 {
                     newAddr = address;
                     newaddress = String(address);
                 }
-                
+
                 int rxPin = request->hasArg(rxParam) ? request->arg(rxParam).toInt() : -1;
                 int txPin = request->hasArg(txParam) ? request->arg(txParam).toInt() : -1;
                 String deviceName = request->hasArg(nameParam) ? request->arg(nameParam) : "";
-                
-                if (address >= 1 && address <= 248 && newAddr >= 1 && newAddr <= 248) {
-                    
+
+                if (address >= 1 && address <= 248 && newAddr >= 1 && newAddr <= 248)
+                {
+
                     // Find a PZEM instance on this serial to send the command
-                    for (size_t k = 0; k < _sh.pzemserstruct.settings.size(); k++) {
-                        if (_sh.pzemserstruct.settings[k].serialname == serialName && _sh.pzemserstruct.settings[k].pzem != nullptr) {
-                            Serial.println("Address change for " + serialName + " Addr:" + String(address) + " New Addr:" + newaddress);
-                            bool success = _sh.pzemserstruct.settings[k].pzem->setDeviceAddress(address, newAddr);
-                            if (success) {
-                                PZEMDevice dev;
-                                dev.serialName = serialName;
-                                dev.rxPin = rxPin;
-                                dev.txPin = txPin;
-                                dev.address = address;
-                                dev.newAddress = newAddr;
-                                dev.deviceName = deviceName;
-                                pzemDevices.push_back(dev);
-                                _WIFITOOL_PL(String("Address change successful for ") + serialName + " Addr:" + String(address) + " New Addr:" + newaddress);
-                            } else {
-                                _WIFITOOL_PL(String("Address change failed for ") + serialName + " Addr:" + String(address) + " New Addr:" + newaddress);
+                    for (size_t k = 0; k < _sh.pzemserstruct.settings.size(); k++)
+                    {
+
+                        if (_sh.pzemserstruct.settings[k].pzem != nullptr)
+                        {
+                            if (_sh.pzemserstruct.settings[k].serialname == serialName &&
+                                _sh.pzemserstruct.settings[k].pzem->getRXPin() == rxPin &&
+                                _sh.pzemserstruct.settings[k].pzem->getTXPin() == txPin &&
+                                _sh.pzemserstruct.settings[k].pzem->getDeviceAddress() == address)
+                            {
+                                Serial.println("Address change for " + serialName + " Addr:" + String(address) + " New Addr:" + newaddress);
+                                bool success = _sh.pzemserstruct.settings[k].pzem->setDeviceAddress(address, newAddr);
+                                if (success)
+                                {
+                                    PZEMDevice dev;
+                                    dev.serialName = serialName;
+                                    dev.rxPin = rxPin;
+                                    dev.txPin = txPin;
+                                    dev.address = address;
+                                    dev.newAddress = newAddr;
+                                    dev.deviceName = deviceName;
+                                    _sh.pzemserstruct.settings[k].name = deviceName;
+                                    Serial.println("deviceName: " + deviceName);
+                                    pzemDevices.push_back(dev);
+                                    _WIFITOOL_PL(String("Address change successful for ") + serialName + " Addr:" + String(address) + " New Addr:" + newaddress);
+                                }
+                                else
+                                {
+                                    _WIFITOOL_PL(String("Address change failed for ") + serialName + " Addr:" + String(address) + " New Addr:" + newaddress);
+                                }
+                                break; // Only need one instance to send the command
                             }
-                            break; // Only need one instance to send the command
                         }
                     }
                 }
             }
         }
     }
-    
+
     SimpleJsonWriter sjw;
     
     uint32_t count=0;
