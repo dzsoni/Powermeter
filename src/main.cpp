@@ -78,7 +78,7 @@ void setup()
   mqttmediator = new MQTTMediator();
   tuplecorefactory = new TupleCoreFactory();
   commandcenter = new CommandCenter();
-  mqttcommand = new MQTT_Command(mqttmediator, *commandcenter, ""); // Empty path - load later
+  mqttcommand = new MQTT_Command(mqttmediator, *commandcenter, MQTTCOMMAND_SETTINGS_JSON);
   serialcommand = new Serial_Command(*commandcenter);
   webserver = new AsyncWebServer(80);
   taskManager = new Scheduler();
