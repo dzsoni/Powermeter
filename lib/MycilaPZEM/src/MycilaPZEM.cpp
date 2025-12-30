@@ -449,19 +449,19 @@ bool Mycila::PZEM::read(uint8_t address) {
   {
     std::lock_guard<std::mutex> dataLock(_data._dataMutex);
     
-    _data.voltage = (static_cast<uint32_t>(_buffer[3]) << 8 | static_cast<uint32_t>(_buffer[4])) * 0.1f;                                                                                            // Raw voltage in 0.1V
-    _data.current = (static_cast<uint32_t>(_buffer[5]) << 8 | static_cast<uint32_t>(_buffer[6] | static_cast<uint32_t>(_buffer[7]) << 24 | static_cast<uint32_t>(_buffer[8]) << 16)) * 0.001f;      // Raw current in 0.001A
-    _data.activePower = (static_cast<uint32_t>(_buffer[9]) << 8 | static_cast<uint32_t>(_buffer[10] | static_cast<uint32_t>(_buffer[11]) << 24 | static_cast<uint32_t>(_buffer[12]) << 16)) * 0.1f; // Raw power in 0.1W
-    _data.activeEnergy = (static_cast<uint32_t>(_buffer[13]) << 8 | static_cast<uint32_t>(_buffer[14] | static_cast<uint32_t>(_buffer[15]) << 24 | static_cast<uint32_t>(_buffer[16]) << 16));      // Raw Energy in 1Wh
-    _data.frequency = (static_cast<uint32_t>(_buffer[17]) << 8 | static_cast<uint32_t>(_buffer[18])) * 0.1f;                                                                                        // Raw Frequency in 0.1Hz
-    _data.powerFactor = (static_cast<uint32_t>(_buffer[19]) << 8 | static_cast<uint32_t>(_buffer[20])) * 0.01f;                                                                                     // Raw pf in 0.01
+    _data._voltage = (static_cast<uint32_t>(_buffer[3]) << 8 | static_cast<uint32_t>(_buffer[4])) * 0.1f;                                                                                            // Raw voltage in 0.1V
+    _data._current = (static_cast<uint32_t>(_buffer[5]) << 8 | static_cast<uint32_t>(_buffer[6] | static_cast<uint32_t>(_buffer[7]) << 24 | static_cast<uint32_t>(_buffer[8]) << 16)) * 0.001f;      // Raw current in 0.001A
+    _data._activePower = (static_cast<uint32_t>(_buffer[9]) << 8 | static_cast<uint32_t>(_buffer[10] | static_cast<uint32_t>(_buffer[11]) << 24 | static_cast<uint32_t>(_buffer[12]) << 16)) * 0.1f; // Raw power in 0.1W
+    _data._activeEnergy = (static_cast<uint32_t>(_buffer[13]) << 8 | static_cast<uint32_t>(_buffer[14] | static_cast<uint32_t>(_buffer[15]) << 24 | static_cast<uint32_t>(_buffer[16]) << 16));      // Raw Energy in 1Wh
+    _data._frequency = (static_cast<uint32_t>(_buffer[17]) << 8 | static_cast<uint32_t>(_buffer[18])) * 0.1f;                                                                                        // Raw Frequency in 0.1Hz
+    _data._powerFactor = (static_cast<uint32_t>(_buffer[19]) << 8 | static_cast<uint32_t>(_buffer[20])) * 0.01f;                                                                                     // Raw pf in 0.01
 
     // calculate remaining metrics
 
     // S = P / PF
-    _data.apparentPower = _data.powerFactor == 0 ? 0 : std::abs(_data.activePower / _data.powerFactor);
+    _data._apparentPower = _data._powerFactor == 0 ? 0 : std::abs(_data._activePower / _data._powerFactor);
     // Q = std::sqrt(S^2 - P^2)
-    _data.reactivePower = std::sqrt(_data.apparentPower * _data.apparentPower - _data.activePower * _data.activePower);
+    _data._reactivePower = std::sqrt(_data._apparentPower * _data._apparentPower - _data._activePower * _data._activePower);
   }
 
   _time = millis();
@@ -768,6 +768,7 @@ bool Mycila::PZEM::_add(PZEM* pzem) {
   std::lock_guard<std::recursive_mutex> lock(_mutex);
   for (size_t i = 0; i < MYCILA_PZEM_ASYNC_MAX_INSTANCES; i++) {
     if (_instances[i] == nullptr) {
+      Serial.printf("Adding instance at address 0x%02X to async task...", pzem->_address);
       LOGD(TAG, "Adding instance at address 0x%02X to async task...", pzem->_address);
 
       if (_taskHandle == NULL) {

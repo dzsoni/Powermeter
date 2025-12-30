@@ -20,7 +20,7 @@ struct pzem_serial_settings_struct
 {
     std::vector<pzem_serial_settings> settings;
     u_int32_t period = 5;
-    void loadPzemSerialSettings(String pathtojson);
+    void loadPzemSerialSettings(String pathtoaddressjson, String pathtomqttjson);
 };
 
 class PzemMqttPublisher : public MedClient
@@ -29,9 +29,10 @@ private:
     struct_hardwares*            _sh;
     pzem_serial_settings_struct& _settings;
     u_int32_t                   _lastpublish=0;
-    String                      _pathtojson;
+    String                      _pathtoaddressjson;//pzem_address.json
+    String                      _pathtomqttjson;//mqtt.json
 public:
-    PzemMqttPublisher(IMQTTMediator *mymqttmediator,pzem_serial_settings_struct& settings,String pathtojson,struct_hardwares* sh);
+    PzemMqttPublisher(IMQTTMediator *mymqttmediator,pzem_serial_settings_struct& settings,String pathtoaddressjson,String pathtomqttjson,struct_hardwares* sh);
     ~PzemMqttPublisher(){};
     void Process();
 
@@ -40,7 +41,6 @@ public:
     u_int32_t getPeriod(){return _settings.period;};
     
     void onConnectCB(bool sessionpresent);
-    // call from loop
 };
 
 #endif /* PZEMMQTTPUBLISHER_H */

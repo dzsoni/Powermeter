@@ -66,68 +66,92 @@ namespace Mycila {
           // Copy constructor
           Data(const Data& other) {
             std::lock_guard<std::mutex> lock(other._dataMutex);
-            frequency = other.frequency;
-            voltage = other.voltage;
-            current = other.current;
-            activePower = other.activePower;
-            powerFactor = other.powerFactor;
-            apparentPower = other.apparentPower;
-            reactivePower = other.reactivePower;
-            activeEnergy = other.activeEnergy;
+            _frequency = other._frequency;
+            _voltage = other._voltage;
+            _current = other._current;
+            _activePower = other._activePower;
+            _powerFactor = other._powerFactor;
+            _apparentPower = other._apparentPower;
+            _reactivePower = other._reactivePower;
+            _activeEnergy = other._activeEnergy;
           }
           
           // Move constructor
           Data(Data&& other) noexcept {
             std::lock_guard<std::mutex> lock(other._dataMutex);
-            frequency = other.frequency;
-            voltage = other.voltage;
-            current = other.current;
-            activePower = other.activePower;
-            powerFactor = other.powerFactor;
-            apparentPower = other.apparentPower;
-            reactivePower = other.reactivePower;
-            activeEnergy = other.activeEnergy;
+            _frequency = other._frequency;
+            _voltage = other._voltage;
+            _current = other._current;
+            _activePower = other._activePower;
+            _powerFactor = other._powerFactor;
+            _apparentPower = other._apparentPower;
+            _reactivePower = other._reactivePower;
+            _activeEnergy = other._activeEnergy;
           }
 
           /**
-           * @brief Frequency in hertz (Hz).
+           * @brief Get frequency in hertz (Hz).
            */
-          float frequency = NAN; // Hz
+          float getFrequency() const {
+            std::lock_guard<std::mutex> lock(_dataMutex);
+            return _frequency;
+          }
 
           /**
-           * @brief Voltage in volts (V).
+           * @brief Get voltage in volts (V).
            */
-          float voltage = NAN;
+          float getVoltage() const {
+            std::lock_guard<std::mutex> lock(_dataMutex);
+            return _voltage;
+          }
 
           /**
-           * @brief Current in amperes (A).
+           * @brief Get current in amperes (A).
            */
-          float current = NAN;
+          float getCurrent() const {
+            std::lock_guard<std::mutex> lock(_dataMutex);
+            return _current;
+          }
 
           /**
-           * @brief Active power in watts (W).
+           * @brief Get active power in watts (W).
            */
-          float activePower = NAN;
+          float getActivePower() const {
+            std::lock_guard<std::mutex> lock(_dataMutex);
+            return _activePower;
+          }
 
           /**
-           * @brief Power factor
+           * @brief Get power factor
            */
-          float powerFactor = NAN;
+          float getPowerFactor() const {
+            std::lock_guard<std::mutex> lock(_dataMutex);
+            return _powerFactor;
+          }
 
           /**
-           * @brief Apparent power in volt-amperes (VA).
+           * @brief Get apparent power in volt-amperes (VA).
            */
-          float apparentPower = NAN;
+          float getApparentPower() const {
+            std::lock_guard<std::mutex> lock(_dataMutex);
+            return _apparentPower;
+          }
 
           /**
-           * @brief Reactive power in volt-amperes reactive (VAr).
+           * @brief Get reactive power in volt-amperes reactive (VAr).
            */
-          float reactivePower = NAN;
+          float getReactivePower() const {
+            std::lock_guard<std::mutex> lock(_dataMutex);
+            return _reactivePower;
+          }
 
           /**
-           * @brief Active energy in watt-hours (Wh).
+           * @brief Get active energy in watt-hours (Wh).
            */
-          uint32_t activeEnergy = 0;
+          uint32_t getActiveEnergy() const {
+            std::lock_guard<std::mutex> lock(_dataMutex);
+            return _activeEnergy;
+          }
 
           /**
            * @brief Compute the total harmonic distortion percentage of current (THDi).
@@ -172,6 +196,46 @@ namespace Mycila {
         private:
           friend class PZEM;
           mutable std::mutex _dataMutex;
+          
+          /**
+           * @brief Frequency in hertz (Hz).
+           */
+          float _frequency = NAN; // Hz
+
+          /**
+           * @brief Voltage in volts (V).
+           */
+          float _voltage = NAN;
+
+          /**
+           * @brief Current in amperes (A).
+           */
+          float _current = NAN;
+
+          /**
+           * @brief Active power in watts (W).
+           */
+          float _activePower = NAN;
+
+          /**
+           * @brief Power factor
+           */
+          float _powerFactor = NAN;
+
+          /**
+           * @brief Apparent power in volt-amperes (VA).
+           */
+          float _apparentPower = NAN;
+
+          /**
+           * @brief Reactive power in volt-amperes reactive (VAr).
+           */
+          float _reactivePower = NAN;
+
+          /**
+           * @brief Active energy in watt-hours (Wh).
+           */
+          uint32_t _activeEnergy = 0;
       };
 
       typedef std::function<void(EventType eventType, const Data& data)> Callback;
@@ -240,7 +304,7 @@ namespace Mycila {
       uint32_t getTime() const { return _time; }
 
       // check if the device is connected to the , meaning if last read was successful
-      bool isConnected() const { return _data.frequency > 0; }
+      bool isConnected() const { return _data.getFrequency() > 0; }
 
       void setCallback(Callback callback) { _callback = std::move(callback); }
 

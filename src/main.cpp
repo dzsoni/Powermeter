@@ -56,6 +56,7 @@ PzemMqttPublisher *pzemmqttpublisher = nullptr;
 Mycila::PZEM *pzem1 = nullptr; // 0x01
 Mycila::PZEM *pzem2 = nullptr; // 0x02
 Mycila::PZEM *pzem3 = nullptr; // 0x03
+Mycila::PZEM *pzem4 = nullptr; // 0x04
 
 pzem_serial_settings_struct pzemsersettingsstruct;
 
@@ -87,6 +88,7 @@ void setup()
   pzem1 = new Mycila::PZEM();
   pzem2 = new Mycila::PZEM();
   pzem3 = new Mycila::PZEM();
+  pzem4 = new Mycila::PZEM();
 
   sh = new struct_hardwares(*webserver, *tuplecorefactory, *commandcenter, *mqttcommand, mqttmediator, *mqttmediator, *wifimanager, pzemsersettingsstruct);
 
@@ -118,8 +120,9 @@ void setup()
   pzemsersettingsstruct.settings.emplace_back(pzem_serial_settings{"Serial1", "", pzem1});
   pzemsersettingsstruct.settings.emplace_back(pzem_serial_settings{"Serial1", "", pzem2});
   pzemsersettingsstruct.settings.emplace_back(pzem_serial_settings{"Serial1", "", pzem3});
+  pzemsersettingsstruct.settings.emplace_back(pzem_serial_settings{"Serial1", "", pzem4});
 
-  pzemmqttpublisher = new PzemMqttPublisher(mqttmediator, pzemsersettingsstruct, PZEM_ADDRESS_JSON, sh);
+  pzemmqttpublisher = new PzemMqttPublisher(mqttmediator, pzemsersettingsstruct, PZEM_ADDRESS_JSON, MQTT_SETTINGS_JSON, sh);
   sh->mqttstruct.loadMQTTsettings();
 
   mqttmediator->setServer(sh->mqttstruct.mqttServer.c_str(), sh->mqttstruct.mqttPort);
@@ -219,66 +222,91 @@ void setup()
   Serial.println(F("Step 8.5: Setting up PZEM callbacks..."));
 
   pzem1->setCallback([](const Mycila::PZEM::EventType eventType, const Mycila::PZEM::Data &data)
-                     {
+{
   
   if(eventType == Mycila::PZEM::EventType::EVT_READ_ERROR) {
-    Serial.println("L1 READ_ERROR");
+    Serial.println("Pzem1 READ_ERROR");
     return;
   }
   if(eventType == Mycila::PZEM::EventType::EVT_READ_TIMEOUT){
-    Serial.println("L1 READ_TIMEOUT");
+    Serial.println("Pzem1 READ_TIMEOUT");
     return;
   }
   if(eventType == Mycila::PZEM::EventType::EVT_READ){
-    Serial.printf("L1 EVT_READ (SUCCESS): %f V, %f A, %f W\n", data.voltage, data.current, data.activePower);
+    Serial.printf("Pzem1 EVT_READ (SUCCESS): %f V, %f A, %f W\n", data.getVoltage(), data.getCurrent(), data.getActivePower());
     Serial.flush();
     return;
   }
-  Serial.printf(" - %" PRIu32 "L1 EVT_UNKNOWN: %f V, %f A, %f W\n", millis(), data.voltage, data.current, data.activePower); });
+  Serial.printf(" - %" PRIu32 "Pzem1 EVT_UNKNOWN: %f V, %f A, %f W\n", millis(), data.getVoltage(), data.getCurrent(), data.getActivePower());
+ });
 
   pzem2->setCallback([](const Mycila::PZEM::EventType eventType, const Mycila::PZEM::Data &data)
-                     {
+{
                        if (eventType == Mycila::PZEM::EventType::EVT_READ_ERROR)
                        {
-                         Serial.println("L2 READ_ERROR");
+                         Serial.println("Pzem2 READ_ERROR");
                          Serial.flush();
                          return;
                        }
                        if (eventType == Mycila::PZEM::EventType::EVT_READ_TIMEOUT)
                        {
-                         Serial.println("L2 READ_TIMEOUT");
+                         Serial.println("Pzem2 READ_TIMEOUT");
                          Serial.flush();
                          return;
                        }
                        if (eventType == Mycila::PZEM::EventType::EVT_READ)
                        {
-                         Serial.printf("L2 EVT_READ (SUCCESS): %f V, %f A, %f W\n", data.voltage, data.current, data.activePower);
+                         Serial.printf("Pzem2 EVT_READ (SUCCESS): %f V, %f A, %f W\n", data.getVoltage(), data.getCurrent(), data.getActivePower());
                          Serial.flush();
                          return;
                        }
 
-                       Serial.printf(" - %" PRIu32 "L2 EVT_UNKNOWN: %f V, %f A, %f W\n", millis(), data.voltage, data.current, data.activePower); });
+                       Serial.printf(" - %" PRIu32 "Pzem2 EVT_UNKNOWN: %f V, %f A, %f W\n", millis(), data.getVoltage(), data.getCurrent(), data.getActivePower());
+                  });
   pzem3->setCallback([](const Mycila::PZEM::EventType eventType, const Mycila::PZEM::Data &data)
-                     {
+  {
     
     if(eventType == Mycila::PZEM::EventType::EVT_READ_ERROR) {
-      Serial.println("L3 READ_ERROR");
+      Serial.println("Pzem3 READ_ERROR");
       Serial.flush();
       return;
     }
     if(eventType == Mycila::PZEM::EventType::EVT_READ_TIMEOUT){
-      Serial.println("L3 READ_TIMEOUT");
+      Serial.println("Pzem3 READ_TIMEOUT");
       Serial.flush();
       return;
     }
     if(eventType == Mycila::PZEM::EventType::EVT_READ){
-      Serial.printf("L3 EVT_READ (SUCCESS): %f V, %f A, %f W\n", data.voltage, data.current, data.activePower);
+      Serial.printf("Pzem3 EVT_READ (SUCCESS): %f V, %f A, %f W\n", data.getVoltage(), data.getCurrent(), data.getActivePower());
       Serial.flush();
       return;
     }
-  
-    Serial.printf(" - %" PRIu32 "L3 EVT_UNKNOWN: %f V, %f A, %f W\n", millis(), data.voltage, data.current, data.activePower);
-    Serial.flush(); });
+
+    Serial.printf(" - %" PRIu32 "Pzem3 EVT_UNKNOWN: %f V, %f A, %f W\n", millis(), data.getVoltage(), data.getCurrent(), data.getActivePower());
+    Serial.flush();
+ });
+ pzem4->setCallback([](const Mycila::PZEM::EventType eventType, const Mycila::PZEM::Data &data)
+  {
+    
+    if(eventType == Mycila::PZEM::EventType::EVT_READ_ERROR) {
+      Serial.println("Pzem4 READ_ERROR");
+      Serial.flush();
+      return;
+    }
+    if(eventType == Mycila::PZEM::EventType::EVT_READ_TIMEOUT){
+      Serial.println("Pzem4 READ_TIMEOUT");
+      Serial.flush();
+      return;
+    }
+    if(eventType == Mycila::PZEM::EventType::EVT_READ){
+      Serial.printf("Pzem4 EVT_READ (SUCCESS): %f V, %f A, %f W\n", data.getVoltage(), data.getCurrent(), data.getActivePower());
+      Serial.flush();
+      return;
+    }
+
+    Serial.printf(" - %" PRIu32 "Pzem4 EVT_UNKNOWN: %f V, %f A, %f W\n", millis(), data.getVoltage(), data.getCurrent(), data.getActivePower());
+    Serial.flush();
+ });
 
   Serial.println(F("Step 8.5: PZEM callbacks DONE"));
 
@@ -287,6 +315,7 @@ void setup()
   pzem1->begin(Serial1, RX_pin, TX_pin, 0x01, true);
   pzem2->begin(Serial1, RX_pin, TX_pin, 0x02, true);
   pzem3->begin(Serial1, RX_pin, TX_pin, 0x03, true);
+  pzem4->begin(Serial1, RX_pin, TX_pin, 0x04, true);
 
   Serial.println(F("Step 9: PZEM async initialization DONE"));
 

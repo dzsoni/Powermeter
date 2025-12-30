@@ -5,14 +5,15 @@
 #include <SimpleJsonParser.h>
 
 
-PzemMqttPublisher::PzemMqttPublisher(IMQTTMediator *mymqttmediator,pzem_serial_settings_struct& settings,String pathtojson,struct_hardwares* sh):
+PzemMqttPublisher::PzemMqttPublisher(IMQTTMediator *mymqttmediator,pzem_serial_settings_struct& settings,String pathtoaddressjson,String pathtomqttjson,struct_hardwares* sh):
                                      _settings(settings),
-                                     _pathtojson(pathtojson),
+                                     _pathtoaddressjson(pathtoaddressjson),
+                                     _pathtomqttjson(pathtomqttjson),
                                      _sh(sh)
                                      
 {
     if(mymqttmediator==nullptr)return;
-    _settings.loadPzemSerialSettings(pathtojson);
+    _settings.loadPzemSerialSettings(pathtoaddressjson,pathtomqttjson);
     MedClient::setMQTTMediator(mymqttmediator);
     MedClient::setOnConnect([&](bool sessionpresent){onConnectCB(sessionpresent);});
 };
@@ -144,26 +145,23 @@ void PzemMqttPublisher::onConnectCB(bool sessionpresent)
     Serial.println("pzem mqtt publisher connected.");
 }
 
-void pzem_serial_settings_struct::loadPzemSerialSettings(String pathtojson)
+void pzem_serial_settings_struct::loadPzemSerialSettings(String pathtoaddressjson, String pathtomqttjson)
 {
     // Check if SPIFFS is mounted and file exists before trying to load
-    if (!SPIFFS.exists(pathtojson)) {
+    if (!SPIFFS.exists(pathtoaddressjson)) {
         Serial.println(F("PZEM address file not found, using existing settings"));
         return;
     }
     
     SimpleJsonParser sjp;
     std::vector<std::pair<String, String>> vec;
-    vec = sjp.extractKeysandValuesFromFile(pathtojson);
+    vec = sjp.extractKeysandValuesFromFile(pathtoaddressjson);
     
     // Only process if JSON file has valid data
     if (vec.size() == 0) {
         Serial.println(F("Empty JSON file, keeping existing settings"));
         return;
     }
-    
-    // DON'T clear - update in place to preserve PZEM pointers from main.cpp!
-    // settings.clear(); // This was the bug causing settings to be lost!
     
     // Update existing settings entries by index
     // Format: "0:name" -> "L1", "1:name" -> "L2", etc.
@@ -197,7 +195,7 @@ void pzem_serial_settings_struct::loadPzemSerialSettings(String pathtojson)
             }
         }
     }
-    /*
+    
     // Display final settings
     Serial.println("Final PZEM settings after load:");
     for (size_t i = 0; i < settings.size(); i++)
@@ -206,9 +204,9 @@ void pzem_serial_settings_struct::loadPzemSerialSettings(String pathtojson)
                     i, settings[i].serialname.c_str(), settings[i].name.c_str(),
                     (settings[i].pzem != nullptr) ? "OK" : "NULL");
     }
-    */
+    
     // Load period from MQTT settings JSON
-    if (SPIFFS.exists(MQTT_SETTINGS_JSON)) {
+    if (SPIFFS.exists(pathtomqttjson)) {
         std::vector<std::pair<String, String>> mqttVec;
         mqttVec = sjp.extractKeysandValuesFromFile(MQTT_SETTINGS_JSON);
         

@@ -724,7 +724,6 @@ void WifiTool::handleSavePZEMaddress(AsyncWebServerRequest *request)
                                     dev.newAddress = newAddr;
                                     dev.deviceName = deviceName;
                                     _sh.pzemserstruct.settings[k].name = deviceName;
-                                    Serial.println("deviceName: " + deviceName);
                                     pzemDevices.push_back(dev);
                                     _WIFITOOL_PL(String("Address change successful for ") + serialName + " Addr:" + String(address) + " New Addr:" + newaddress);
                                 }
